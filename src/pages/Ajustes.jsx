@@ -27,7 +27,7 @@ export default function Ajustes({ perfil: cuenta, query }) {
         {p && (
           <Card titulo="Metas y perfil">
             <Formulario onEnviar={async (v) => {
-              await api("/perfil", { method: "PUT", body: limpiar(v, ["meta_kcal", "meta_proteina", "meta_carbos", "meta_grasa", "altura_cm"]) });
+              await api("/perfil", { method: "PUT", body: limpiar(v, ["meta_kcal", "meta_proteina", "meta_carbos", "meta_grasa", "altura_cm", "edad"]) });
               avisarCambio();
             }}>
               <div className="grid-2">
@@ -36,12 +36,12 @@ export default function Ajustes({ perfil: cuenta, query }) {
                 <Campo label="Carbos (g)" name="meta_carbos" type="number" min="0" defaultValue={p.meta_carbos ?? ""} />
                 <Campo label="Grasa (g)" name="meta_grasa" type="number" min="0" defaultValue={p.meta_grasa ?? ""} />
                 <Campo label="Altura (cm)" name="altura_cm" type="number" step="0.1" defaultValue={p.altura_cm ?? ""} />
-                <Campo label="Nacimiento" name="nacimiento" type="date" defaultValue={p.nacimiento ?? ""} />
+                <Campo label="Edad" name="edad" type="number" min="10" max="110" defaultValue={p.edad_actual ?? ""} />
               </div>
               <Campo label="Objetivo" name="objetivo" type="textarea" defaultValue={p.objetivo ?? ""}
                      placeholder="Bajar grasa sin perder músculo; me cuesta la comida porque soy mañoso" />
               <Campo label="Zona horaria" name="tz" defaultValue={p.tz} />
-              <p className="suave chico-txt">¿No sabes qué metas poner? Pregúntale al chat: te propone calorías y proteína según tu peso y objetivo.</p>
+              <p className="suave chico-txt">No necesitas llenar esto: dile al chat tu edad, estatura, peso y objetivo, y él lo completa y te propone las metas.</p>
             </Formulario>
           </Card>
         )}
