@@ -68,7 +68,10 @@ function Chat({ perfil }) {
   useEffect(() => {
     historial().then(setMensajes).catch(() => {});
   }, []);
-  useEffect(() => fin.current?.scrollIntoView({ behavior: "smooth" }), [mensajes]);
+  // Con llaves: en Chrome reciente scrollIntoView devuelve una Promise, y React trataría eso como cleanup.
+  useEffect(() => {
+    fin.current?.scrollIntoView({ behavior: "smooth" });
+  }, [mensajes]);
 
   async function enviar(e) {
     e.preventDefault();
