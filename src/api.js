@@ -40,11 +40,11 @@ export const historial = () => api("/historial");
  * Envía un mensaje (con foto opcional) y va entregando el texto a medida que llega (SSE sobre POST).
  * onEvento recibe {tipo: "delta"|"herramienta", ...}. Devuelve el evento "fin".
  */
-export async function chat({ texto, imagen }, onEvento) {
+export async function chat({ texto, imagenes = [] }, onEvento) {
   const res = await fetch(`${API_URL}/api/chat`, {
     method: "POST",
     headers: await headers(),
-    body: JSON.stringify({ texto, imagen }),
+    body: JSON.stringify({ texto, imagenes }),
   });
   if (!res.ok) throw await fallo(res);
 

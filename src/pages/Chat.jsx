@@ -1,4 +1,4 @@
-import { ArrowUp, Camera, Check, Image as ImageIcon, LoaderCircle, Sparkles, X } from "lucide-react";
+import { ArrowUp, Camera, Check, Image as ImageIcon, ImagePlus, LoaderCircle, Plus, Sparkles, X } from "lucide-react";
 import { Ico } from "../iconos.jsx";
 import { useEffect, useRef, useState } from "react";
 import DOMPurify from "dompurify";
@@ -17,15 +17,24 @@ const ACCIONES = {
   marcar_dosis: "marcando la dosis", agregar_cita: "agendando la cita", ver_cuidado: "revisando tu rutina",
   agregar_producto: "agregando el producto", agregar_paso_rutina: "armando la rutina", recordar: "guardando en memoria",
   buscar_memoria: "buscando en memoria", ver_novedades: "revisando novedades", WebSearch: "buscando en la web", WebFetch: "leyendo una página",
+  editar_comida: "corrigiendo la comida", editar_gasto: "corrigiendo el gasto", borrar_gasto: "borrando el gasto",
+  borrar_entreno: "borrando el entreno", editar_medicamento: "actualizando el remedio", borrar_medicamento: "borrando el remedio",
+  editar_cita: "actualizando la cita", borrar_cita: "borrando la cita", editar_producto: "actualizando el producto",
+  borrar_producto: "borrando el producto", marcar_paso_rutina: "marcando la rutina", borrar_paso_rutina: "quitando el paso",
+  olvidar: "olvidando", marcar_novedad: "marcando la novedad", agregar_tema: "agregando el tema", editar_tema: "ajustando el tema",
+  borrar_tema: "quitando el tema",
 };
+const MAX_FOTOS = 6;
 
 export default function Chat({ abrirCamara, onCamaraUsada }) {
   const [mensajes, setMensajes] = useState([]);
   const [texto, setTexto] = useState("");
-  const [imagen, setImagen] = useState(null);
+  const [imagenes, setImagenes] = useState([]);
+  const [procesando, setProcesando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const fin = useRef(null);
-  const archivo = useRef(null);
+  const camara = useRef(null);
+  const galeria = useRef(null);
 
   useEffect(() => {
     historial().then(setMensajes).catch(() => {});
@@ -36,26 +45,33 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
   }, [mensajes]);
   useEffect(() => {
     if (abrirCamara) {
-      archivo.current?.click();
+      camara.current?.click();
       onCamaraUsada();
     }
   }, [abrirCamara, onCamaraUsada]);
 
-  async function elegirFoto(e) {
-    const f = e.target.files?.[0];
+  async function agregarFotos(e) {
+    const archivos = [...(e.target.files ?? [])];
     e.target.value = "";
-    if (f) setImagen(await reducirImagen(f));
+    if (!archivos.length) return;
+    setProcesando(true);
+    try {
+      const nuevas = await Promise.all(archivos.map((f) => reducirImagen(f)));
+      setImagenes((ya) => [...ya, ...nuevas].slice(0, MAX_FOTOS));
+    } finally {
+      setProcesando(false);
+    }
   }
 
   async function enviar(e) {
     e.preventDefault();
     const t = texto.trim();
-    if ((!t && !imagen) || enviando) return;
-    const img = imagen;
+    if ((!t && !imagenes.length) || enviando) return;
+    const fotos = imagenes;
     setTexto("");
-    setImagen(null);
+    setImagenes([]);
     setEnviando(true);
-    setMensajes((m) => [...m, { role: "user", content: t, foto: img }, { role: "assistant", content: "", acciones: [], vivo: true }]);
+    setMensajes((m) => [...m, { role: "user", content: t, fotos }, { role: "assistant", content: "", acciones: [], vivo: true }]);
     const ultimo = (fn) =>
       setMensajes((m) => {
         const copia = [...m];
@@ -63,7 +79,7 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
         return copia;
       });
     try {
-      const final = await chat({ texto: t, imagen: img }, (ev) => {
+      const final = await chat({ texto: t, imagenes: fotos }, (ev) => {
         if (ev.tipo === "delta") ultimo((u) => ({ ...u, content: u.content + ev.texto }));
         if (ev.tipo === "herramienta") ultimo((u) => ({ ...u, acciones: [...u.acciones, ev.nombre] }));
       });
@@ -90,8 +106,14 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
         )}
         {mensajes.map((m, i) => (
           <div key={i} className={`burbuja ${m.role} ${m.error ? "con-error" : ""}`}>
-            {m.foto && <img src={m.foto} alt="Foto enviada" className="foto-msg" />}
-            {m.con_imagen && !m.foto && <small className="suave foto-etiqueta"><Ico i={ImageIcon} size={14} /> foto</small>}
+            {m.fotos?.length > 0 && (
+              <div className={`fotos-msg n${Math.min(m.fotos.length, 3)}`}>
+                {m.fotos.map((f, j) => <img key={j} src={f} alt={`Foto ${j + 1}`} />)}
+              </div>
+            )}
+            {m.con_imagen && !m.fotos && (
+              <small className="foto-etiqueta"><Ico i={ImageIcon} size={14} /> {m.n_fotos > 1 ? `${m.n_fotos} fotos` : "foto"}</small>
+            )}
             {m.role === "assistant" ? (
               <>
                 {m.acciones?.length > 0 && (
@@ -108,25 +130,42 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
         ))}
         <div ref={fin} />
       </section>
-      {imagen && (
-        <div className="preview">
-          <img src={imagen} alt="Foto a enviar" />
-          <button className="icono" onClick={() => setImagen(null)} aria-label="Quitar foto"><Ico i={X} size={14} /></button>
+      {(imagenes.length > 0 || procesando) && (
+        <div className="previews">
+          {imagenes.map((f, j) => (
+            <div key={j} className="preview-foto">
+              <img src={f} alt={`Foto ${j + 1} a enviar`} />
+              <button type="button" onClick={() => setImagenes((ya) => ya.filter((_, k) => k !== j))} aria-label={`Quitar foto ${j + 1}`}>
+                <Ico i={X} size={13} />
+              </button>
+            </div>
+          ))}
+          {procesando && <div className="preview-foto cargando"><Ico i={LoaderCircle} size={18} className="girar" /></div>}
+          {imagenes.length < MAX_FOTOS && !procesando && (
+            <button type="button" className="preview-mas" onClick={() => galeria.current?.click()} aria-label="Agregar más fotos">
+              <Ico i={Plus} size={20} />
+            </button>
+          )}
         </div>
       )}
       <form className="entrada" onSubmit={enviar}>
-        <input ref={archivo} type="file" accept="image/*" capture="environment" hidden onChange={elegirFoto} />
-        <button type="button" className="icono" onClick={() => archivo.current?.click()} aria-label="Adjuntar foto"><Ico i={Camera} size={22} /></button>
+        {/* Cámara: saca una foto ahora. Galería: elige varias fotos ya sacadas. */}
+        <input ref={camara} type="file" accept="image/*" capture="environment" hidden onChange={agregarFotos} />
+        <input ref={galeria} type="file" accept="image/*" multiple hidden onChange={agregarFotos} />
+        <button type="button" className="icono" onClick={() => camara.current?.click()} aria-label="Sacar foto"
+                disabled={imagenes.length >= MAX_FOTOS}><Ico i={Camera} size={22} /></button>
+        <button type="button" className="icono" onClick={() => galeria.current?.click()} aria-label="Elegir fotos de la galería"
+                disabled={imagenes.length >= MAX_FOTOS}><Ico i={ImagePlus} size={22} /></button>
         <textarea
           value={texto}
           rows={1}
-          placeholder={imagen ? "Agrega un comentario (opcional)" : "Escribe un mensaje"}
+          placeholder={imagenes.length ? "Comentario (opcional)" : "Escribe un mensaje"}
           onChange={(e) => setTexto(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey && !/Android|iPhone|iPad/.test(navigator.userAgent)) enviar(e);
           }}
         />
-        <button className="enviar" aria-label="Enviar" disabled={enviando || (!texto.trim() && !imagen)}><Ico i={ArrowUp} size={20} /></button>
+        <button className="enviar" aria-label="Enviar" disabled={enviando || procesando || (!texto.trim() && !imagenes.length)}><Ico i={ArrowUp} size={20} /></button>
       </form>
     </div>
   );
