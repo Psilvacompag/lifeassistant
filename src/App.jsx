@@ -1,10 +1,26 @@
-import { useEffect, useRef, useState } from "react";
-import DOMPurify from "dompurify";
-import { marked } from "marked";
-import { chat, historial, me } from "./api.js";
+import { useCallback, useEffect, useState } from "react";
+import { me } from "./api.js";
 import { alCambiarSesion, entrar, salir } from "./firebase.js";
+import Ajustes from "./pages/Ajustes.jsx";
+import Chat from "./pages/Chat.jsx";
+import Comida from "./pages/Comida.jsx";
+import Cuidado from "./pages/Cuidado.jsx";
+import Finanzas from "./pages/Finanzas.jsx";
+import Fitness from "./pages/Fitness.jsx";
+import Hoy from "./pages/Hoy.jsx";
+import Mas from "./pages/Mas.jsx";
+import Memoria from "./pages/Memoria.jsx";
+import Salud from "./pages/Salud.jsx";
 
-const md = (t) => ({ __html: DOMPurify.sanitize(marked.parse(t ?? "", { breaks: true })) });
+const NAV = [
+  ["hoy", "🏠", "Hoy"],
+  ["comida", "🍽️", "Comida"],
+  ["chat", "💬", "Chat"],
+  ["salud", "💊", "Salud"],
+  ["mas", "☰", "Más"],
+];
+const DE_MAS = ["finanzas", "fitness", "cuidado", "memoria", "ajustes"];
+const rutaActual = () => location.hash.replace(/^#\/?/, "") || "hoy";
 
 export default function App() {
   const [estado, setEstado] = useState("cargando"); // cargando | fuera | denegado | dentro
@@ -46,7 +62,7 @@ export default function App() {
         {error && <p className="error">{error}</p>}
       </Pantalla>
     );
-  return <Chat perfil={perfil} />;
+  return <Shell perfil={perfil} />;
 }
 
 function Pantalla({ children }) {
@@ -59,77 +75,56 @@ function Pantalla({ children }) {
   );
 }
 
-function Chat({ perfil }) {
-  const [mensajes, setMensajes] = useState([]);
-  const [texto, setTexto] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const fin = useRef(null);
+function Shell({ perfil }) {
+  const [ruta, setRuta] = useState(rutaActual);
+  const [camara, setCamara] = useState(false);
+  const nombre = perfil?.name?.split(" ")[0] ?? "";
 
   useEffect(() => {
-    historial().then(setMensajes).catch(() => {});
+    const cambio = () => {
+      setRuta(rutaActual());
+      window.scrollTo(0, 0);
+    };
+    window.addEventListener("hashchange", cambio);
+    return () => window.removeEventListener("hashchange", cambio);
   }, []);
-  // Con llaves: en Chrome reciente scrollIntoView devuelve una Promise, y React trataría eso como cleanup.
-  useEffect(() => {
-    fin.current?.scrollIntoView({ behavior: "smooth" });
-  }, [mensajes]);
 
-  async function enviar(e) {
-    e.preventDefault();
-    const t = texto.trim();
-    if (!t || enviando) return;
-    setTexto("");
-    setEnviando(true);
-    setMensajes((m) => [...m, { role: "user", content: t }, { role: "assistant", content: "", vivo: true }]);
-    const actualizar = (fn) =>
-      setMensajes((m) => {
-        const copia = [...m];
-        copia[copia.length - 1] = fn(copia[copia.length - 1]);
-        return copia;
-      });
-    try {
-      const final = await chat(t, (delta) => actualizar((u) => ({ ...u, content: u.content + delta })));
-      actualizar((u) => ({ ...u, content: final || u.content, vivo: false }));
-    } catch (err) {
-      actualizar((u) => ({ ...u, content: u.content || `⚠️ ${err.message}`, vivo: false, error: true }));
-    } finally {
-      setEnviando(false);
-    }
-  }
+  const ir = useCallback((destino, opciones = {}) => {
+    if (opciones.camara) setCamara(true);
+    location.hash = `/${destino}`;
+  }, []);
+  const camaraUsada = useCallback(() => setCamara(false), []);
+
+  const pagina = {
+    hoy: <Hoy nombre={nombre} ir={ir} />,
+    comida: <Comida ir={ir} />,
+    chat: <Chat abrirCamara={camara} onCamaraUsada={camaraUsada} />,
+    salud: <Salud />,
+    mas: <Mas ir={ir} />,
+    finanzas: <Finanzas />,
+    fitness: <Fitness />,
+    cuidado: <Cuidado ir={ir} />,
+    memoria: <Memoria />,
+    ajustes: <Ajustes perfil={perfil} />,
+  }[ruta] ?? <Hoy nombre={nombre} ir={ir} />;
+  const activa = DE_MAS.includes(ruta) ? "mas" : ruta;
 
   return (
-    <div className="chat">
-      <header>
-        <img src="./icon.svg" alt="" />
-        <span>Hola, {perfil?.name?.split(" ")[0] ?? "tú"}</span>
-        <button className="secundario chico" onClick={salir}>Salir</button>
-      </header>
-      <section className="mensajes">
-        {mensajes.length === 0 && (
-          <p className="suave centro">Cuéntame en qué te ayudo hoy: una comida, un entrenamiento, tu rutina de piel…</p>
-        )}
-        {mensajes.map((m, i) => (
-          <div key={i} className={`burbuja ${m.role} ${m.error ? "con-error" : ""}`}>
-            {m.role === "assistant" ? (
-              m.content ? <div dangerouslySetInnerHTML={md(m.content)} /> : <span className="escribiendo">pensando…</span>
-            ) : (
-              m.content
-            )}
-          </div>
+    <div className={`shell ${ruta === "chat" ? "en-chat" : ""}`}>
+      <div className="franja" aria-hidden />
+      {DE_MAS.includes(ruta) && (
+        <button className="volver enlace" onClick={() => ir("mas")}>‹ Más</button>
+      )}
+      <main className="contenido">{pagina}</main>
+      <nav className="nav" aria-label="Secciones">
+        {NAV.map(([id, icono, txt]) => (
+          <button key={id} className={activa === id ? "activa" : ""} aria-current={activa === id ? "page" : undefined}
+                  onClick={() => ir(id)}>
+            <span aria-hidden>{icono}</span>
+            <small>{txt}</small>
+          </button>
         ))}
-        <div ref={fin} />
-      </section>
-      <form className="entrada" onSubmit={enviar}>
-        <textarea
-          value={texto}
-          rows={1}
-          placeholder="Escribe un mensaje"
-          onChange={(e) => setTexto(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) enviar(e);
-          }}
-        />
-        <button disabled={enviando || !texto.trim()}>Enviar</button>
-      </form>
+      </nav>
     </div>
   );
 }

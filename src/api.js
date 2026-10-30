@@ -9,7 +9,8 @@ async function headers() {
 async function fallo(res) {
   let detalle = "";
   try {
-    detalle = (await res.json()).detail ?? "";
+    const j = await res.json();
+    detalle = typeof j.detail === "string" ? j.detail : (j.detail?.[0]?.msg ?? "");
   } catch {
     /* sin cuerpo JSON */
   }
@@ -18,31 +19,39 @@ async function fallo(res) {
   return err;
 }
 
-export async function me() {
-  const res = await fetch(`${API_URL}/api/me`, { headers: await headers() });
+/** Llamada genérica a la API. body se envía como JSON. */
+export async function api(path, { method = "GET", body } = {}) {
+  const res = await fetch(`${API_URL}/api${path}`, {
+    method,
+    headers: await headers(),
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
   if (!res.ok) throw await fallo(res);
   return res.json();
 }
 
-export async function historial() {
-  const res = await fetch(`${API_URL}/api/historial`, { headers: await headers() });
-  if (!res.ok) throw await fallo(res);
-  return res.json();
-}
+/** Avisa a las pantallas abiertas que los datos cambiaron (las recarga useApi). */
+export const avisarCambio = () => window.dispatchEvent(new Event("la:cambio"));
 
-/** Envía un mensaje y llama a onDelta con cada trozo de texto a medida que llega (SSE sobre POST). */
-export async function chat(texto, onDelta) {
+export const me = () => api("/me");
+export const historial = () => api("/historial");
+
+/**
+ * Envía un mensaje (con foto opcional) y va entregando el texto a medida que llega (SSE sobre POST).
+ * onEvento recibe {tipo: "delta"|"herramienta", ...}. Devuelve el evento "fin".
+ */
+export async function chat({ texto, imagen }, onEvento) {
   const res = await fetch(`${API_URL}/api/chat`, {
     method: "POST",
     headers: await headers(),
-    body: JSON.stringify({ texto }),
+    body: JSON.stringify({ texto, imagen }),
   });
   if (!res.ok) throw await fallo(res);
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  let final = "";
+  let fin = null;
   for (;;) {
     const { value, done } = await reader.read();
     if (done) break;
@@ -57,10 +66,28 @@ export async function chat(texto, onDelta) {
         .join("\n");
       if (!data) continue;
       const ev = JSON.parse(data);
-      if (ev.tipo === "delta") onDelta(ev.texto);
-      else if (ev.tipo === "error") throw new Error(ev.texto);
-      else if (ev.tipo === "fin") final = ev.texto;
+      if (ev.tipo === "error") throw new Error(ev.texto);
+      if (ev.tipo === "fin") fin = ev;
+      else onEvento(ev);
     }
   }
-  return final;
+  return fin;
+}
+
+/** Reduce una foto a máx. 1600 px en JPEG: menos datos por la red y menos tokens para el modelo. */
+export function reducirImagen(file, max = 1600) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * k);
+      canvas.height = Math.round(img.height * k);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(img.src);
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => reject(new Error("No pude leer la imagen"));
+    img.src = URL.createObjectURL(file);
+  });
 }
