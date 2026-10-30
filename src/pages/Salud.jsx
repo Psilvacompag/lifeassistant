@@ -33,7 +33,7 @@ export default function Salud() {
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
                   <span className="resumen-etiqueta">Adherencia · 7 días</span>
                   <b style={{ fontSize: "1.05rem" }}>
-                    {s.adherencia.programadas ? `${s.adherencia.tomadas} de ${s.adherencia.programadas} tomas` : "Sin tomas aún"}
+                    {s.adherencia.programadas ? `${s.adherencia.tomadas} de ${s.adherencia.programadas} dosis` : "Sin registros aún"}
                   </b>
                   <small>{proxima ? `Próxima: ${proxima.nombre} a las ${proxima.horario}` : "Nada pendiente hoy"}</small>
                 </div>
@@ -44,9 +44,9 @@ export default function Salud() {
               </div>
             </Resumen>
 
-            <Seccion titulo="Tomas de hoy">
+            <Seccion titulo="Medicación de hoy">
               <Card>
-                <DosisLista dosis={s.dosis_hoy} vacio="Sin tomas programadas hoy." />
+                <DosisLista dosis={s.dosis_hoy} vacio="Nada programado para hoy." />
               </Card>
             </Seccion>
 
@@ -155,7 +155,7 @@ export default function Salud() {
             <Campo label="Notas" name="notas" type="textarea" defaultValue={hoja.med.notas ?? ""} />
             <label className="check-linea"><input type="checkbox" name="activo" defaultChecked={hoja.med.activo} /> Activo</label>
             <button type="button" className="secundario peligro" onClick={async () => {
-              if (!confirm(`¿Borrar ${hoja.med.nombre} y su historial de tomas?`)) return;
+              if (!confirm(`¿Borrar ${hoja.med.nombre} y su historial?`)) return;
               await api(`/meds/${hoja.med.id}`, { method: "DELETE" });
               avisarCambio();
               setHoja(null);

@@ -58,7 +58,7 @@ export default function Inicio({ nombre, ir }) {
             <ResumenDia h={h} ir={ir} />
             <div className="panel">
               <WidgetSkincare h={h} ir={ir} />
-              <WidgetTomas h={h} ir={ir} />
+              <WidgetMedicacion h={h} ir={ir} />
               <WidgetComida h={h} ir={ir} />
               <WidgetEntreno h={h} ir={ir} />
               <WidgetFinanzas h={h} ir={ir} />
@@ -145,7 +145,7 @@ function WidgetSkincare({ h, ir }) {
   );
 }
 
-function WidgetTomas({ h, ir }) {
+function WidgetMedicacion({ h, ir }) {
   const hechas = h.dosis.filter((d) => d.estado !== "pendiente").length;
   const proxima = h.dosis.find((d) => d.estado === "pendiente");
   const [ocupado, setOcupado] = useState(false);
@@ -159,7 +159,7 @@ function WidgetTomas({ h, ir }) {
     }
   }
   return (
-    <Widget icono={Pill} tono={proxima?.atrasada ? "serio" : "acento"} titulo="Tomas" contador={h.dosis.length ? `${hechas}/${h.dosis.length}` : null}
+    <Widget icono={Pill} tono={proxima?.atrasada ? "serio" : "acento"} titulo="Medicación" contador={h.dosis.length ? `${hechas}/${h.dosis.length}` : null}
             onAbrir={() => ir("salud")}>
       {!h.dosis.length ? (
         <VacioChat texto="Sin remedios ni suplementos." pedido="Quiero cargar mis remedios y suplementos con sus horarios." ir={ir} />
