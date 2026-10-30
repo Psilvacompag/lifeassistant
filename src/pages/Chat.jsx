@@ -33,6 +33,15 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
   const [procesando, setProcesando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const fin = useRef(null);
+  const caja = useRef(null);
+  // La caja crece con el texto (hasta ~5 líneas; después hace scroll) y vuelve a una línea al enviar.
+  useEffect(() => {
+    const t = caja.current;
+    if (!t) return;
+    t.style.height = "auto";
+    t.style.height = `${Math.min(t.scrollHeight, 150)}px`;
+    t.style.overflowY = t.scrollHeight > 150 ? "auto" : "hidden";
+  }, [texto]);
   const camara = useRef(null);
   const galeria = useRef(null);
 
@@ -157,6 +166,7 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
         <button type="button" className="icono" onClick={() => galeria.current?.click()} aria-label="Elegir fotos de la galería"
                 disabled={imagenes.length >= MAX_FOTOS}><Ico i={ImagePlus} size={22} /></button>
         <textarea
+          ref={caja}
           value={texto}
           rows={1}
           placeholder={imagenes.length ? "Comentario (opcional)" : "Escribe un mensaje"}

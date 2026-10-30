@@ -373,7 +373,8 @@ details[open] summary .ico { transform: rotate(90deg); }
   background: var(--fondo);
 }
 .entrada textarea {
-  flex: 1; resize: none; font: inherit; padding: 0.6rem 0.9rem; border-radius: 20px; max-height: 8rem;
+  flex: 1; resize: none; font: inherit; font-size: 1rem; line-height: 1.4; padding: 0.62rem 0.95rem; border-radius: 22px;
+  min-height: 44px; max-height: 150px; overflow-y: hidden; transition: height 0.1s;
   border: 1px solid var(--borde-fuerte); background: var(--superficie); color: var(--texto);
 }
 .entrada textarea:focus { outline: none; border-color: var(--acento); }
