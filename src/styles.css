@@ -539,3 +539,62 @@ button.enlace.ver { font-weight: 500; font-size: 0.86rem; gap: 0.1rem; }
 .fotos-msg.n1 img { aspect-ratio: auto; max-height: 260px; }
 .burbuja.user .foto-etiqueta { color: var(--acento-texto); opacity: 0.85; }
 .entrada button.icono { padding: 0.45rem 0.35rem; }
+
+/* ── Panel de Inicio (tarjetas-widget) ── */
+.panel { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+.widget {
+  background: var(--superficie); border: 1px solid var(--borde); border-radius: 18px; padding: 0.85rem 0.9rem 0.9rem;
+  box-shadow: var(--sombra); display: flex; flex-direction: column; gap: 0.55rem; min-width: 0;
+}
+.widget.ancho { grid-column: 1 / -1; }
+.widget-cab {
+  display: flex; align-items: center; gap: 0.55rem; background: none; color: var(--texto); padding: 0; border-radius: 0;
+  justify-content: flex-start; font-weight: 600; text-align: left; width: 100%;
+}
+.widget-cab .icono-fila { width: 30px; height: 30px; border-radius: 9px; }
+.widget-cab .icono-fila svg { width: 16px; height: 16px; }
+.widget-cab .titulo { flex: 1; font-size: 0.86rem; letter-spacing: -0.005em; }
+.widget-cab .contador { font-size: 0.78rem; color: var(--suave); font-weight: 600; font-variant-numeric: tabular-nums; }
+.widget-cab .chevron { color: var(--borde-fuerte); }
+.widget-cifra { font-size: 1.45rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.widget-sub { font-size: 0.78rem; color: var(--suave); }
+.widget-vacio { font-size: 0.82rem; color: var(--suave); line-height: 1.4; }
+.widget .botonera { gap: 0.4rem; }
+.widget .botonera button { flex: 1; padding: 0.45rem 0.5rem; font-size: 0.82rem; }
+.widget-pie { margin-top: auto; }
+
+/* Checklist compacto (skincare en el panel) */
+.check-mini { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.check-mini li { display: flex; align-items: center; gap: 0.5rem; padding: 0.28rem 0; cursor: pointer; font-size: 0.86rem; min-width: 0; }
+.check-mini li span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.check-mini .caja { width: 19px; height: 19px; border-radius: 6px; }
+.check-mini li.hecha span:last-child { color: var(--suave); text-decoration: line-through; text-decoration-color: var(--borde-fuerte); }
+.barra-progreso { height: 4px; border-radius: 4px; background: var(--superficie-2); overflow: hidden; }
+.barra-progreso span { display: block; height: 100%; background: var(--bueno); border-radius: 4px; transition: width 0.3s; }
+
+/* Toma destacada */
+.toma { display: flex; flex-direction: column; gap: 0.1rem; }
+.toma b { font-size: 0.92rem; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+/* Comidas del día en el panel */
+.comidas-mini { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.comidas-mini span { background: var(--superficie-2); border-radius: 999px; padding: 0.2rem 0.6rem; font-size: 0.78rem; color: var(--texto-2); }
+.comidas-mini span b { color: var(--texto); font-variant-numeric: tabular-nums; }
+
+/* ── Barra inferior con el chat al centro ── */
+.nav button.nav-chat { flex: 1.1; }
+.nav-chat .burbuja-nav {
+  width: 50px; height: 50px; border-radius: 50%; background: var(--acento); color: var(--acento-texto);
+  display: grid; place-items: center; margin-top: -22px; box-shadow: 0 6px 18px rgb(31 59 99 / 0.35);
+  border: 4px solid var(--fondo);
+}
+.nav-chat.activa .burbuja-nav { box-shadow: 0 0 0 3px var(--acento-suave), 0 6px 18px rgb(31 59 99 / 0.35); }
+
+/* ── Perfil ── */
+.perfil-cab { display: flex; align-items: center; gap: 0.9rem; }
+.perfil-cab .avatar { width: 56px; height: 56px; font-size: 1.1rem; background: var(--acento-suave); color: var(--acento-tinta); }
+.datos-perfil { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; }
+.dato-perfil { background: var(--superficie); border: 1px solid var(--borde); border-radius: 12px; padding: 0.55rem 0.4rem; text-align: center; }
+.dato-perfil b { display: block; font-size: 1rem; font-variant-numeric: tabular-nums; }
+.dato-perfil small { font-size: 0.68rem; color: var(--suave); text-transform: uppercase; letter-spacing: 0.06em; }
+.widget-cab .titulo { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }

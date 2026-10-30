@@ -2,9 +2,12 @@ import { ChevronRight, Minus, Plus, TrendingDown, TrendingUp } from "lucide-reac
 import { Ico } from "../iconos.jsx";
 import { useState } from "react";
 import { api, avisarCambio } from "../api.js";
-import { Campo, Card, Estado, Formulario, Hoja, LineaPeso, Resumen, fechaCorta, isoLocal, limpiar, num, useApi } from "../ui.jsx";
+import {
+  Campo, Card, Columnas, Estado, Formulario, Hoja, LineaPeso, Resumen, diaSemana, fechaCorta, isoLocal, limpiar, num, useApi,
+} from "../ui.jsx";
 
 export default function Fitness() {
+  const comida = useApi(`/comida?fecha=${isoLocal()}`);
   const { data: f, error, cargando } = useApi("/fitness");
   const [hoja, setHoja] = useState(null); // "medidas" | "entreno"
   const [series, setSeries] = useState([{ ejercicio: "", reps: "", peso_kg: "" }]);
@@ -17,7 +20,7 @@ export default function Fitness() {
 
   return (
     <div className="pagina">
-      <header className="pagina-cab"><h1>Fitness</h1></header>
+      <header className="pagina-cab"><h1>Progreso</h1></header>
       <Estado cargando={cargando && !f} error={!f && error}>
         {f && (
           <>
@@ -42,6 +45,13 @@ export default function Fitness() {
             <Card titulo="Peso · últimos 90 días" accion={<button className="enlace ver" onClick={() => setHoja("medidas")}><Ico i={Plus} size={16} />Medidas</button>}>
               <LineaPeso puntos={m.tendencia} />
             </Card>
+
+            {comida.data && (
+              <Card titulo="Calorías · últimos 7 días">
+                <Columnas datos={comida.data.semana} valor={(x) => x.kcal} meta={comida.data.metas.kcal}
+                          etiqueta={(x) => diaSemana(x.fecha)} formato={(v) => `${num(v)} kcal`} />
+              </Card>
+            )}
 
             <Card titulo="Entrenamientos" accion={<button className="enlace ver" onClick={() => setHoja("entreno")}><Ico i={Plus} size={16} />Entreno</button>}>
               {!f.entrenos.length && <p className="suave">Registra tus sesiones aquí o cuéntaselas al chat ("hoy hice press banca 4x8 con 80").</p>}

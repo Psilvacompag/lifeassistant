@@ -1,6 +1,6 @@
 import { Apple, Camera, Coffee, CookingPot, Croissant, PenLine, Soup, Star, Trash2 } from "lucide-react";
 import { Ico } from "../iconos.jsx";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, avisarCambio } from "../api.js";
 import {
   Anillo, Badge, Campo, Card, Columnas, Estado, Formulario, Hoja, IconoFila, Resumen, diaSemana, fechaCorta, isoLocal, limpiar,
@@ -14,7 +14,7 @@ const comidaSugerida = () => {
   return h < 11 ? "desayuno" : h < 16 ? "almuerzo" : h < 19 ? "once" : "cena";
 };
 
-export default function Comida({ ir }) {
+export default function Comida({ ir, hojaInicial, onOpcionesUsadas }) {
   const [fecha, setFecha] = useState(isoLocal());
   const { data: d, error, cargando } = useApi(`/comida?fecha=${fecha}`);
   const favs = useApi("/comida/favoritas");
@@ -26,7 +26,10 @@ export default function Comida({ ir }) {
     f.setDate(f.getDate() - 6 + i);
     return isoLocal(f);
   });
-  const [hoja, setHoja] = useState(null); // "manual" | "favoritas"
+  const [hoja, setHoja] = useState(hojaInicial ?? null); // "manual" | "favoritas"
+  useEffect(() => {
+    if (hojaInicial) onOpcionesUsadas();
+  }, [hojaInicial, onOpcionesUsadas]);
   const esHoy = fecha === isoLocal();
 
   async function borrar(id) {

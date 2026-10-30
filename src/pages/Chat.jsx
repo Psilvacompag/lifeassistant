@@ -40,7 +40,7 @@ function fusionar(previos, delServidor) {
   });
 }
 
-export default function Chat({ abrirCamara, onCamaraUsada }) {
+export default function Chat({ abrirCamara, textoInicial, onOpcionesUsadas }) {
   const [mensajes, setMensajes] = useState([]);
   const [texto, setTexto] = useState("");
   const [imagenes, setImagenes] = useState([]);
@@ -95,11 +95,13 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
     fin.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes]);
   useEffect(() => {
-    if (abrirCamara) {
-      camara.current?.click();
-      onCamaraUsada();
+    if (abrirCamara) camara.current?.click();
+    if (textoInicial) {
+      setTexto(textoInicial);
+      setTimeout(() => caja.current?.focus(), 50);
     }
-  }, [abrirCamara, onCamaraUsada]);
+    if (abrirCamara || textoInicial) onOpcionesUsadas();
+  }, [abrirCamara, textoInicial, onOpcionesUsadas]);
 
   async function agregarFotos(e) {
     const archivos = [...(e.target.files ?? [])];
