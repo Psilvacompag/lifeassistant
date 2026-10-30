@@ -2,8 +2,9 @@ import { Apple, Camera, Coffee, CookingPot, Croissant, PenLine, Soup, Star, Tras
 import { Ico } from "../iconos.jsx";
 import { useEffect, useState } from "react";
 import { api, avisarCambio } from "../api.js";
+import { IdeasComida, comidaDeAhora } from "../componentes.jsx";
 import {
-  Anillo, Badge, Campo, Card, Columnas, Estado, Formulario, Hoja, IconoFila, Resumen, diaSemana, fechaCorta, isoLocal, limpiar,
+  Anillo, Badge, Campo, Card, Columnas, Estado, Formulario, Hoja, IconoFila, Resumen, Seccion, diaSemana, fechaCorta, isoLocal, limpiar,
   num, useApi,
 } from "../ui.jsx";
 
@@ -95,6 +96,12 @@ export default function Comida({ ir, hojaInicial, onOpcionesUsadas }) {
               <button className="atajo" onClick={() => setHoja("favoritas")}><Ico i={Star} size={20} />Favoritas</button>
               <button className="atajo" onClick={() => setHoja("manual")}><Ico i={PenLine} size={20} />Manual</button>
             </div>
+
+            {esHoy && (
+              <Seccion titulo={`Ideas para ${{ desayuno: "el desayuno", almuerzo: "el almuerzo", once: "la once", cena: "la cena", snack: "un snack" }[comidaDeAhora()]}`}>
+                <IdeasComida />
+              </Seccion>
+            )}
 
             {COMIDAS.map((c) => {
               const items = d.items.filter((i) => i.comida === c);

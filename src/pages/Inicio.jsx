@@ -4,6 +4,7 @@ import {
   TrendingUp, Utensils, Wallet,
 } from "lucide-react";
 import { api, avisarCambio } from "../api.js";
+import { comidaDeAhora } from "../componentes.jsx";
 import { Ico } from "../iconos.jsx";
 import { Anillo, Avatar, Estado, FechaBloque, IconoFila, MiniBarras, Resumen, clp, fechaCorta, fechaHora, num, useApi } from "../ui.jsx";
 
@@ -119,11 +120,12 @@ function WidgetSkincare({ h, ir }) {
   }
   return (
     <Widget icono={momento === "am" ? Sun : Moon} titulo="Skincare"
-            contador={pasos.length ? `${momento === "am" ? "AM" : "PM"} · ${hechos}/${pasos.length}` : null} onAbrir={() => ir("cuidado")}>
+            contador={pasos.length ? `${hechos}/${pasos.length}` : null} onAbrir={() => ir("cuidado")}>
       {!pasos.length ? (
         <VacioChat texto="Aún no tienes rutina." pedido="Ármame una rutina de skincare de mañana y de noche para puntos negros, con productos que se vendan en Chile." ir={ir} />
       ) : (
         <>
+          <small className="widget-sub">Rutina de {momento === "am" ? "mañana" : "noche"}</small>
           <div className="barra-progreso"><span style={{ width: `${(100 * hechos) / pasos.length}%` }} /></div>
           <ul className="check-mini">
             {pasos.map((p) => (
@@ -183,6 +185,9 @@ function WidgetMedicacion({ h, ir }) {
 
 function WidgetComida({ h, ir }) {
   const n = h.nutricion;
+  const comida = comidaDeAhora();
+  const ideas = useApi(`/comida/sugerencias?comida=${comida}`);
+  const idea = ideas.data?.ideas?.[0];
   const porComida = COMIDAS.map((c) => [c, n.items.filter((i) => i.comida === c).reduce((s, i) => s + i.kcal, 0)]).filter(([, k]) => k);
   return (
     <Widget icono={Utensils} titulo="Comidas de hoy" ancho onAbrir={() => ir("comida")}
@@ -193,6 +198,13 @@ function WidgetComida({ h, ir }) {
         </div>
       ) : (
         <p className="widget-vacio">Nada registrado hoy. Una foto del plato basta.</p>
+      )}
+      {idea && (
+        <div className="idea-mini" role="button" tabIndex={0} onClick={() => ir("comida")} onKeyDown={(e) => e.key === "Enter" && ir("comida")}>
+          <small>Idea para {comida === "once" ? "la once" : comida === "cena" ? "la cena" : `el ${comida}`} · {idea.minutos} min</small>
+          <b style={{ fontSize: "0.92rem" }}>{idea.nombre}</b>
+          <small>{num(idea.kcal)} kcal · {num(idea.proteina)} g proteína · ver más ideas</small>
+        </div>
       )}
       <div className="botonera">
         <button className="secundario" onClick={() => ir("chat", { camara: true })}><Ico i={Camera} size={16} />Foto</button>

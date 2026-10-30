@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Check, Clock, Moon, Pill, Stethoscope, Sun } from "lucide-react";
+import { Check, ChevronDown, Clock, Lightbulb, LoaderCircle, Moon, Pill, RefreshCw, Stethoscope, Sun, ThumbsDown, ThumbsUp } from "lucide-react";
 import { api, avisarCambio } from "./api.js";
 import { Ico } from "./iconos.jsx";
-import { Badge, IconoFila } from "./ui.jsx";
+import { Badge, IconoFila, num, useApi } from "./ui.jsx";
 
 /** Dosis del día con botones Tomé / Omitir / Deshacer. Lo usan Hoy, Salud y Cuidado. */
 export function DosisLista({ dosis, vacio = "Sin dosis programadas hoy." }) {
@@ -164,5 +164,93 @@ export function AgendaHoy({ dosis, rutina, citasHoy = [], alIr }) {
         );
       })}
     </ul>
+  );
+}
+
+const NOMBRE_COMIDA = { desayuno: "el desayuno", almuerzo: "el almuerzo", once: "la once", cena: "la cena", snack: "un snack" };
+export const comidaDeAhora = () => {
+  const h = new Date().getHours();
+  return h < 11 ? "desayuno" : h < 16 ? "almuerzo" : h < 19 ? "once" : h < 23 ? "cena" : "snack";
+};
+
+/** Qué comer ahora: 3 ideas de mínimo esfuerzo que cierran lo que falta, con "La comí" y me gusta / no me gusta. */
+export function IdeasComida({ comida = comidaDeAhora() }) {
+  const { data, error, cargando } = useApi(`/comida/sugerencias?comida=${comida}`);
+  const [propias, setPropias] = useState(null); // ideas nuevas pedidas con "Otras ideas"
+  const [pidiendo, setPidiendo] = useState(false);
+  const [votos, setVotos] = useState({}); // nombre → 1 | -1 | "comida"
+  const [abierta, setAbierta] = useState(null);
+  const ideas = propias ?? data?.ideas ?? [];
+
+  async function otras() {
+    setPidiendo(true);
+    try {
+      setPropias((await api(`/comida/sugerencias?comida=${comida}&nuevas=true`)).ideas);
+      setVotos({});
+    } finally {
+      setPidiendo(false);
+    }
+  }
+  async function votar(idea, voto) {
+    setVotos((v) => ({ ...v, [idea.nombre]: voto }));
+    await api("/comida/sugerencias/votar", { method: "POST", body: { nombre: idea.nombre, ingredientes: idea.ingredientes.join(", "), voto } });
+  }
+  async function comi(idea) {
+    setVotos((v) => ({ ...v, [idea.nombre]: "comida" }));
+    await api("/comida/sugerencias/comi", { method: "POST", body: { comida, idea: {
+      nombre: idea.nombre, ingredientes: idea.ingredientes, kcal: idea.kcal, proteina: idea.proteina, carbos: idea.carbos, grasa: idea.grasa } } });
+    avisarCambio();
+  }
+
+  if (error && !ideas.length) return <p className="suave chico-txt">No pude preparar ideas ahora. {error.message}</p>;
+  if ((cargando && !ideas.length) || pidiendo) {
+    return <p className="suave chico-txt cargando-ideas"><Ico i={LoaderCircle} size={15} className="girar" /> Pensando ideas para {NOMBRE_COMIDA[comida]}…</p>;
+  }
+  return (
+    <div className="ideas">
+      {ideas.map((idea, i) => {
+        const v = votos[idea.nombre];
+        return (
+          <article key={idea.nombre} className={`idea ${v === -1 ? "descartada" : ""} ${v === "comida" ? "comida" : ""}`}>
+            <button className="idea-cab" onClick={() => setAbierta(abierta === i ? null : i)} aria-expanded={abierta === i}>
+              <span className="fila-txt">
+                <b>{idea.nombre}</b>
+                <small className="suave">{idea.descripcion}</small>
+              </span>
+              <Ico i={ChevronDown} size={18} className={`chevron ${abierta === i ? "abierto" : ""}`} />
+            </button>
+            <div className="idea-datos">
+              <Badge icono={Clock}>{idea.minutos} min</Badge>
+              <Badge>{num(idea.kcal)} kcal</Badge>
+              <Badge tono="acento">{num(idea.proteina)} g proteína</Badge>
+            </div>
+            {abierta === i && (
+              <div className="idea-detalle">
+                <p className="chico-txt por-que"><Ico i={Lightbulb} size={15} /><span>{idea.por_que}</span></p>
+                <h3>Ingredientes</h3>
+                <ul>{idea.ingredientes.map((x) => <li key={x}>{x}</li>)}</ul>
+                <h3>Cómo</h3>
+                <ol>{idea.pasos.map((x) => <li key={x}>{x}</li>)}</ol>
+                <p className="suave chico-txt">C {num(idea.carbos)} g · G {num(idea.grasa)} g · valores estimados</p>
+              </div>
+            )}
+            <div className="idea-acciones">
+              {v === "comida" ? (
+                <Badge tono="bueno" icono={Check}>Registrada</Badge>
+              ) : v === -1 ? (
+                <small className="suave">No te la vuelvo a sugerir</small>
+              ) : (
+                <>
+                  <button className="chico" onClick={() => comi(idea)}><Ico i={Check} size={15} />La comí</button>
+                  <button className={`icono ${v === 1 ? "votado" : ""}`} aria-label="Me gusta" onClick={() => votar(idea, 1)}><Ico i={ThumbsUp} size={17} /></button>
+                  <button className="icono" aria-label="No me gusta" onClick={() => votar(idea, -1)}><Ico i={ThumbsDown} size={17} /></button>
+                </>
+              )}
+            </div>
+          </article>
+        );
+      })}
+      <button className="secundario chico" onClick={otras}><Ico i={RefreshCw} size={15} />Otras ideas</button>
+    </div>
   );
 }
