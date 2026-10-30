@@ -64,17 +64,20 @@ function Notificaciones() {
     suscripcionActual().then((s) => setActiva(Boolean(s))).catch(() => setActiva(false));
   }, []);
 
+  /** Devuelve true si salió bien (para no encadenar pasos después de un error). */
   async function hacer(fn, ok) {
     setOcupado(true);
     setMsg("");
     try {
       await fn();
       setMsg(ok);
-      setActiva(Boolean(await suscripcionActual()));
-      estado.recargar();
+      return true;
     } catch (e) {
       setMsg(`⚠️ ${e.message}`);
+      return false;
     } finally {
+      setActiva(Boolean(await suscripcionActual().catch(() => null)));
+      estado.recargar();
       setOcupado(false);
     }
   }
@@ -86,12 +89,17 @@ function Notificaciones() {
         rutina de noche, cobros de tarjeta y novedades.
       </p>
       {permiso === "no-soportado" && <p className="error">Este navegador no soporta notificaciones. En Android usa Chrome.</p>}
-      {permiso === "denied" && (
-        <p className="error">Bloqueaste las notificaciones para este sitio. Actívalas en Chrome → ⋮ → Configuración → Notificaciones.</p>
+      {(permiso === "denied" || (permiso === "default" && msg.startsWith("⚠️"))) && (
+        <div className="aviso-card serio card chico-txt">
+          <b>Chrome no dio el permiso.</b> Hazlo a mano: toca el ícono a la izquierda de la dirección (candado o ⚙️) →
+          <b> Permisos</b> → <b>Notificaciones</b> → <b>Permitir</b>. Después recarga y toca "Activar" de nuevo.
+        </div>
       )}
       <div className="botonera">
         {!activa && permiso !== "no-soportado" && (
-          <button disabled={ocupado} onClick={() => hacer(activarPush, "✓ Listo. Te mandé una de prueba.").then(() => api("/push/probar", { method: "POST" }).catch(() => {}))}>
+          <button disabled={ocupado} onClick={async () => {
+            if (await hacer(activarPush, "✓ Listo. Te mandé una de prueba.")) await api("/push/probar", { method: "POST" }).catch(() => {});
+          }}>
             Activar en este dispositivo
           </button>
         )}

@@ -118,7 +118,7 @@ export async function suscripcionActual() {
 export async function activarPush() {
   if (!pushSoportado()) throw new Error("Este navegador no soporta notificaciones");
   const permiso = await Notification.requestPermission();
-  if (permiso !== "granted") throw new Error("Permiso denegado: actívalo en la configuración del navegador para este sitio");
+  if (permiso !== "granted") throw new Error("Chrome no dio el permiso de notificaciones");
   const reg = await registroSW();
   const { clave } = await api("/push/clave");
   const sub = (await reg.pushManager.getSubscription()) ??
