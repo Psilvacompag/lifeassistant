@@ -1,15 +1,18 @@
-import { Plus } from "lucide-react";
+import { Check, ChevronRight, Droplet, Pill, Plus, X } from "lucide-react";
 import { Ico } from "../iconos.jsx";
 import { useState } from "react";
 import { api, avisarCambio } from "../api.js";
 import { DosisLista } from "../componentes.jsx";
-import { Badge, Campo, Card, Estado, Formulario, Hoja, fechaHora, limpiar, useApi } from "../ui.jsx";
+import {
+  Anillo, Badge, Campo, Card, Estado, FechaBloque, Formulario, Hoja, IconoFila, Resumen, Seccion, limpiar, useApi,
+} from "../ui.jsx";
 
 export default function Salud() {
   const { data: s, error, cargando } = useApi("/salud");
   const [hoja, setHoja] = useState(null); // "med" | "cita" | {med}
   const citasPend = s?.citas.filter((c) => c.estado === "pendiente") ?? [];
   const citasPasadas = s?.citas.filter((c) => c.estado !== "pendiente") ?? [];
+  const proxima = s?.dosis_hoy.find((d) => d.estado === "pendiente");
 
   async function estadoCita(id, estado) {
     await api(`/citas/${id}`, { method: "PATCH", body: { estado } });
@@ -22,63 +25,87 @@ export default function Salud() {
       <Estado cargando={cargando && !s} error={!s && error}>
         {s && (
           <>
-            <Card titulo="Hoy" accion={s.adherencia.pct !== null && (
-              <Badge tono={s.adherencia.pct >= 90 ? "bueno" : s.adherencia.pct >= 70 ? "aviso" : "serio"}>
-                {s.adherencia.pct}% esta semana
-              </Badge>
-            )}>
-              <DosisLista dosis={s.dosis_hoy} vacio="Sin tomas programadas hoy." />
-            </Card>
+            <Resumen>
+              <div className="resumen-fila">
+                <Anillo valor={s.adherencia.tomadas} meta={s.adherencia.programadas || 1} tamano={96} grosor={9}>
+                  <b style={{ fontSize: "1.25rem" }}>{s.adherencia.pct !== null ? `${s.adherencia.pct}%` : "—"}</b>
+                </Anillo>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
+                  <span className="resumen-etiqueta">Adherencia · 7 días</span>
+                  <b style={{ fontSize: "1.05rem" }}>
+                    {s.adherencia.programadas ? `${s.adherencia.tomadas} de ${s.adherencia.programadas} tomas` : "Sin tomas aún"}
+                  </b>
+                  <small>{proxima ? `Próxima: ${proxima.nombre} a las ${proxima.horario}` : "Nada pendiente hoy"}</small>
+                </div>
+              </div>
+              <div className="resumen-pie">
+                <div><small>Medicamentos activos</small><b>{s.meds.filter((m) => m.activo).length}</b></div>
+                <div><small>Citas pendientes</small><b>{citasPend.length}</b></div>
+              </div>
+            </Resumen>
 
-            <Card titulo="Medicamentos" accion={<button className="chico secundario" onClick={() => setHoja("med")}><Ico i={Plus} size={16} />Agregar</button>}>
-              {!s.meds.length && <p className="suave">Agrega tus remedios con sus horarios, o mándale una foto de la receta al chat.</p>}
-              <ul className="lista">
-                {s.meds.map((m) => (
-                  <li key={m.id} className={`fila clic ${m.activo ? "" : "hecha"}`} onClick={() => setHoja({ med: m })}>
-                    <span className="fila-txt">
-                      <b>{m.nombre}</b>
-                      <small className="suave">
-                        {m.dosis} · {m.horarios.join(", ") || "sin horario"}
-                        {m.area === "cuidado" && " · cuidado"}
-                      </small>
-                    </span>
-                    {m.stock !== null && <Badge tono={m.stock <= 5 ? "aviso" : "neutro"}>stock {m.stock}</Badge>}
-                    {!m.activo && <Badge>pausado</Badge>}
-                  </li>
-                ))}
-              </ul>
-            </Card>
+            <Seccion titulo="Tomas de hoy">
+              <Card>
+                <DosisLista dosis={s.dosis_hoy} vacio="Sin tomas programadas hoy." />
+              </Card>
+            </Seccion>
 
-            <Card titulo="Citas y exámenes" accion={<button className="chico secundario" onClick={() => setHoja("cita")}><Ico i={Plus} size={16} />Agregar</button>}>
-              {!citasPend.length && <p className="suave">Sin citas pendientes.</p>}
-              <ul className="lista">
-                {citasPend.map((c) => (
-                  <li key={c.id} className="fila">
-                    <span className="fila-txt">
-                      <b>{c.titulo}</b> <Badge>{c.tipo}</Badge>
-                      <small className="suave">{fechaHora(c.inicio)}{c.lugar && ` · ${c.lugar}`}</small>
-                      {c.preparacion && <small className="nota-estado serio">Preparación: {c.preparacion}</small>}
-                    </span>
-                    <span className="acciones">
-                      <button className="chico secundario" onClick={() => estadoCita(c.id, "hecha")}>Hecha</button>
-                      <button className="chico enlace" onClick={() => estadoCita(c.id, "cancelada")}>cancelar</button>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              {citasPasadas.length > 0 && (
-                <details>
-                  <summary className="suave">Anteriores ({citasPasadas.length})</summary>
-                  <ul className="lista">
-                    {citasPasadas.map((c) => (
-                      <li key={c.id} className="fila hecha">
-                        <span className="fila-txt"><b>{c.titulo}</b><small className="suave">{fechaHora(c.inicio)} · {c.estado}</small></span>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-            </Card>
+            <Seccion titulo="Medicamentos" accion={<button className="enlace ver" onClick={() => setHoja("med")}><Ico i={Plus} size={16} />Agregar</button>}>
+              <Card>
+                {!s.meds.length && <p className="suave" style={{ margin: 0 }}>Agrega tus remedios con sus horarios, o mándale una foto de la receta al chat.</p>}
+                <ul className="lista">
+                  {s.meds.map((m) => (
+                    <li key={m.id} className={`fila clic ${m.activo ? "" : "hecha"}`} onClick={() => setHoja({ med: m })}>
+                      <IconoFila icono={m.area === "cuidado" ? Droplet : Pill} tono={m.activo ? "acento" : "neutro"} />
+                      <span className="fila-txt">
+                        <b>{m.nombre}</b>
+                        <small className="suave">{m.dosis} · {m.horarios.join(", ") || "sin horario"}</small>
+                      </span>
+                      {m.stock !== null && <Badge tono={m.stock <= 5 ? "aviso" : "neutro"}>stock {m.stock}</Badge>}
+                      {!m.activo && <Badge>pausado</Badge>}
+                      <Ico i={ChevronRight} size={18} className="chevron" />
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            </Seccion>
+
+            <Seccion titulo="Citas y exámenes" accion={<button className="enlace ver" onClick={() => setHoja("cita")}><Ico i={Plus} size={16} />Agregar</button>}>
+              <Card>
+                {!citasPend.length && <p className="suave" style={{ margin: 0 }}>Sin citas pendientes.</p>}
+                <ul className="lista">
+                  {citasPend.map((c) => (
+                    <li key={c.id} className="fila">
+                      <FechaBloque iso={c.inicio} />
+                      <span className="fila-txt">
+                        <b>{c.titulo}</b>
+                        <small className="suave">
+                          {new Date(c.inicio).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })} · {c.tipo}{c.lugar && ` · ${c.lugar}`}
+                        </small>
+                        {c.preparacion && <small className="nota-estado serio">Preparación: {c.preparacion}</small>}
+                      </span>
+                      <span className="acciones">
+                        <button className="chico secundario" onClick={() => estadoCita(c.id, "hecha")}><Ico i={Check} size={15} />Hecha</button>
+                        <button className="icono chico" aria-label="Cancelar cita" onClick={() => estadoCita(c.id, "cancelada")}><Ico i={X} size={16} /></button>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {citasPasadas.length > 0 && (
+                  <details style={{ marginTop: "0.5rem" }}>
+                    <summary className="suave chico-txt"><Ico i={ChevronRight} size={15} />Anteriores ({citasPasadas.length})</summary>
+                    <ul className="lista">
+                      {citasPasadas.map((c) => (
+                        <li key={c.id} className="fila hecha">
+                          <FechaBloque iso={c.inicio} />
+                          <span className="fila-txt"><b>{c.titulo}</b><small className="suave">{c.estado}</small></span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </Card>
+            </Seccion>
             <p className="suave chico-txt">
               Organizo tus remedios y citas; no reemplazo a tu médico. Los horarios y dosis son los que tú cargas.
             </p>

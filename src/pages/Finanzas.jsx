@@ -1,8 +1,11 @@
-import { Check, ChevronLeft, ChevronRight, Mail, Plus } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, CreditCard, Mail, Plus } from "lucide-react";
 import { Ico } from "../iconos.jsx";
 import { useState } from "react";
 import { api, avisarCambio } from "../api.js";
-import { Badge, BarrasH, Campo, Card, Estado, Formulario, Hoja, clp, fechaCorta, fechaHora, isoLocal, limpiar, useApi } from "../ui.jsx";
+import {
+  Avatar, Badge, BarrasH, Campo, Card, Estado, Formulario, Hoja, IconoFila, MiniBarras, Resumen, Seccion, clp, fechaCorta, isoLocal,
+  limpiar, useApi,
+} from "../ui.jsx";
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const CATEGORIAS = ["supermercado", "comida", "delivery", "transporte", "salud", "cuidado personal", "suplementos",
@@ -22,6 +25,19 @@ export default function Finanzas({ ir }) {
     setMes({ anio: m.getFullYear(), mes: m.getMonth() + 1 });
   }
 
+  // Gasto por día del mes (CLP) para el mini gráfico, y gastos agrupados por fecha para la lista.
+  const diasMes = new Date(mes.anio, mes.mes, 0).getDate();
+  const porDia = Array.from({ length: diasMes }, (_, i) => ({ dia: i + 1, monto: 0 }));
+  const grupos = [];
+  for (const g of f?.gastos ?? []) {
+    if (g.moneda === "CLP") porDia[Number(String(g.fecha).slice(8, 10)) - 1].monto += Number(g.monto);
+    const ultimo = grupos.at(-1);
+    if (ultimo && ultimo.fecha === g.fecha) ultimo.items.push(g);
+    else grupos.push({ fecha: g.fecha, items: [g] });
+  }
+  const usd = (f?.otras_monedas ?? []).filter((g) => g.moneda === "USD").reduce((s, g) => s + Number(g.monto), 0);
+  const diasConDatos = esActual ? new Date().getDate() : diasMes;
+
   return (
     <div className="pagina">
       <header className="pagina-cab fila-nav">
@@ -40,72 +56,96 @@ export default function Finanzas({ ir }) {
           </div>
         </Card>
       )}
-      {google.data?.conectado && (
-        <p className="suave chico-txt" style={{ display: "flex", gap: "0.35rem", alignItems: "center", margin: 0 }}>
-          <Ico i={Mail} size={14} /> Gmail {google.data.error ? <span className="error">con error: {google.data.error}</span> : "conectado"} · revisado{" "}
-          {google.data.ultimo_sync ? fechaHora(google.data.ultimo_sync) : "aún no"}
-        </p>
-      )}
 
       <Estado cargando={cargando && !f} error={!f && error}>
         {f && (
           <>
-            <div className="tiles">
-              <div className="tile">
-                <small className="suave">Total del mes</small>
-                <b className="grande">{clp(f.total_clp)}</b>
-                {f.por_confirmar > 0 && <Badge tono="aviso">{f.por_confirmar} por confirmar</Badge>}
+            <Resumen>
+              <span className="resumen-etiqueta">Gastado en {MESES[mes.mes - 1]}</span>
+              <div className="resumen-cifra">{clp(f.total_clp)}</div>
+              {usd > 0 && <small>+ US${usd.toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} en dólares</small>}
+              <div style={{ marginTop: "0.9rem" }}>
+                <MiniBarras datos={porDia} valor={(d) => d.monto} etiqueta={(d) => `${d.dia}: ${clp(d.monto)}`} alto={48} />
               </div>
-              <button className="tile accion" onClick={() => setHoja("nuevo")}>
-                <Ico i={Plus} size={20} /><b>Agregar gasto</b><small className="suave">efectivo o transferencia</small>
-              </button>
-            </div>
+              <div className="resumen-pie">
+                <div><small>Movimientos</small><b>{f.gastos.length}</b></div>
+                <div><small>Promedio diario</small><b>{clp(f.total_clp / Math.max(1, diasConDatos))}</b></div>
+                {google.data?.conectado && (
+                  <div><small>Gmail</small><b>{google.data.error ? "con error" : "conectado"}</b></div>
+                )}
+              </div>
+            </Resumen>
+
+            <button className="secundario" onClick={() => setHoja("nuevo")}>
+              <Ico i={Plus} size={18} /> Agregar gasto
+            </button>
 
             {f.estados?.length > 0 && (
-              <Card titulo="Tarjetas">
-                <ul className="lista">
-                  {f.estados.map((s) => {
-                    const monto = s.moneda === "CLP" ? clp(s.monto_facturado) : `US$${Number(s.monto_facturado).toFixed(2)}`;
-                    const vencido = s.fecha_pago && s.fecha_pago < isoLocal();
-                    return (
-                      <li key={s.id} className="fila">
-                        <span className="fila-txt">
-                          <b>{s.tarjeta}</b>
-                          <small className="suave">
-                            Estado al {fechaCorta(s.periodo_hasta)} · {s.movimientos} cargos
-                            {s.fecha_pago && ` · pagar hasta ${fechaCorta(s.fecha_pago)}`}
-                          </small>
-                        </span>
-                        {Number(s.monto_facturado) <= 0 ? <Badge tono="bueno" icono={Check}>nada que pagar</Badge>
-                          : vencido ? <Badge>{monto} · vencido</Badge> : <Badge tono="aviso">{monto}</Badge>}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </Card>
+              <Seccion titulo="Tarjetas">
+                <Card>
+                  <ul className="lista">
+                    {f.estados.map((s) => {
+                      const monto = s.moneda === "CLP" ? clp(s.monto_facturado) : `US$${Number(s.monto_facturado).toFixed(2)}`;
+                      const vencido = s.fecha_pago && s.fecha_pago < isoLocal();
+                      return (
+                        <li key={s.id} className="fila">
+                          <IconoFila icono={CreditCard} tono={Number(s.monto_facturado) > 0 && !vencido ? "aviso" : "neutro"} />
+                          <span className="fila-txt">
+                            <b>{s.tarjeta} <small className="suave">· {s.moneda === "CLP" ? "nacional" : "internacional"}</small></b>
+                            <small className="suave">
+                              {s.movimientos} cargos{s.fecha_pago && ` · pagar hasta ${fechaCorta(s.fecha_pago)}`}
+                            </small>
+                          </span>
+                          {Number(s.monto_facturado) <= 0 ? <Badge tono="bueno" icono={Check}>nada que pagar</Badge>
+                            : <b className="monto">{monto}</b>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </Card>
+              </Seccion>
             )}
 
             {f.por_categoria.length > 0 && (
-              <Card titulo="Por categoría">
-                <BarrasH datos={f.por_categoria} valor={(c) => c.monto} etiqueta={(c) => c.categoria} formato={clp} />
-              </Card>
+              <Seccion titulo="Por categoría">
+                <Card>
+                  <BarrasH datos={f.por_categoria} valor={(c) => c.monto} etiqueta={(c) => c.categoria} formato={clp} />
+                </Card>
+              </Seccion>
             )}
 
-            <Card titulo={`Gastos (${f.gastos.length})`}>
-              {!f.gastos.length && <p className="suave">Sin gastos este mes.</p>}
-              <ul className="lista">
-                {f.gastos.map((g) => (
-                  <li key={g.id} className="fila clic" onClick={() => setHoja({ gasto: g })}>
-                    <span className="fila-txt">
-                      <b>{g.comercio}</b>
-                      <small className="suave">{fechaCorta(g.fecha)} · {g.categoria} · {MEDIOS[g.medio]}{g.cuotas > 1 && ` · ${g.cuotas} cuotas`}</small>
+            <Seccion titulo={`Movimientos (${f.gastos.length})`}>
+              {!f.gastos.length && <Card><p className="suave" style={{ margin: 0 }}>Sin gastos este mes.</p></Card>}
+              {grupos.length > 0 && (
+                <Card>
+                  {grupos.map((gr) => (
+                  <div key={gr.fecha} className="grupo-dia">
+                  <div className="grupo-dia-cab">
+                    <span>{fechaCorta(gr.fecha)}</span>
+                    <span className="monto">
+                      {clp(gr.items.filter((g) => g.moneda === "CLP").reduce((s, g) => s + Number(g.monto), 0))}
                     </span>
-                    {g.estado === "por_confirmar" && <Badge tono="aviso">confirmar</Badge>}
-                    <b className="monto">{g.moneda === "CLP" ? clp(g.monto) : `${g.moneda} ${g.monto}`}</b>
-                  </li>
-                ))}
-              </ul>
-            </Card>
+                  </div>
+                  <ul className="lista">
+                    {gr.items.map((g) => (
+                      <li key={g.id} className="fila clic" onClick={() => setHoja({ gasto: g })}>
+                        <Avatar texto={g.comercio} />
+                        <span className="fila-txt">
+                          <b>{g.comercio}</b>
+                          <small className="suave">
+                            {g.categoria}{g.tarjeta ? ` · ${g.tarjeta}` : ` · ${MEDIOS[g.medio]}`}{g.cuotas > 1 && ` · ${g.cuotas} cuotas`}
+                          </small>
+                        </span>
+                        {g.estado === "por_confirmar" && <Badge tono="aviso">confirmar</Badge>}
+                        <b className="monto">{g.moneda === "CLP" ? clp(g.monto) : `US$${Number(g.monto).toFixed(2)}`}</b>
+                      </li>
+                    ))}
+                  </ul>
+                  </div>
+                  ))}
+                </Card>
+              )}
+            </Seccion>
           </>
         )}
       </Estado>

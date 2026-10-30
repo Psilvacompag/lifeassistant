@@ -1,12 +1,14 @@
-import { Camera, ChevronLeft, ChevronRight, PenLine, Star, Trash2 } from "lucide-react";
+import { Apple, Camera, Coffee, CookingPot, Croissant, PenLine, Soup, Star, Trash2 } from "lucide-react";
 import { Ico } from "../iconos.jsx";
 import { useState } from "react";
 import { api, avisarCambio } from "../api.js";
 import {
-  Badge, Campo, Card, Columnas, Estado, Formulario, Hoja, Progreso, diaSemana, fechaCorta, isoLocal, limpiar, num, useApi,
+  Anillo, Badge, Campo, Card, Columnas, Estado, Formulario, Hoja, IconoFila, Resumen, diaSemana, fechaCorta, isoLocal, limpiar,
+  num, useApi,
 } from "../ui.jsx";
 
 const COMIDAS = ["desayuno", "almuerzo", "once", "cena", "snack"];
+const ICONO_COMIDA = { desayuno: Coffee, almuerzo: CookingPot, once: Croissant, cena: Soup, snack: Apple };
 const comidaSugerida = () => {
   const h = new Date().getHours();
   return h < 11 ? "desayuno" : h < 16 ? "almuerzo" : h < 19 ? "once" : "cena";
@@ -16,14 +18,17 @@ export default function Comida({ ir }) {
   const [fecha, setFecha] = useState(isoLocal());
   const { data: d, error, cargando } = useApi(`/comida?fecha=${fecha}`);
   const favs = useApi("/comida/favoritas");
+  const hoyData = useApi(`/comida?fecha=${isoLocal()}`);
+  const semanaHoy = hoyData.data?.semana;
+  const semanaMetas = hoyData.data?.metas;
+  const dias = Array.from({ length: 7 }, (_, i) => {
+    const f = new Date();
+    f.setDate(f.getDate() - 6 + i);
+    return isoLocal(f);
+  });
   const [hoja, setHoja] = useState(null); // "manual" | "favoritas"
   const esHoy = fecha === isoLocal();
 
-  function mover(dias) {
-    const f = new Date(`${fecha}T12:00:00`);
-    f.setDate(f.getDate() + dias);
-    setFecha(isoLocal(f));
-  }
   async function borrar(id) {
     await api(`/comida/${id}`, { method: "DELETE" });
     avisarCambio();
@@ -31,36 +36,76 @@ export default function Comida({ ir }) {
 
   return (
     <div className="pagina">
-      <header className="pagina-cab fila-nav">
-        <button className="icono" onClick={() => mover(-1)} aria-label="Día anterior"><Ico i={ChevronLeft} size={20} /></button>
-        <h1>{esHoy ? "Comida de hoy" : fechaCorta(fecha)}</h1>
-        <button className="icono" onClick={() => mover(1)} disabled={esHoy} aria-label="Día siguiente"><Ico i={ChevronRight} size={20} /></button>
+      <header className="pagina-cab">
+        <p className="suave chico-txt">{esHoy ? "Hoy" : fechaCorta(fecha)}</p>
+        <h1>Comida</h1>
       </header>
 
-      <div className="atajos">
-        <button className="atajo" onClick={() => ir("chat", { camara: true })}><Ico i={Camera} size={20} />Foto</button>
-        <button className="atajo" onClick={() => setHoja("favoritas")}><Ico i={Star} size={20} />Favoritas</button>
-        <button className="atajo" onClick={() => setHoja("manual")}><Ico i={PenLine} size={20} />Manual</button>
+      <div className="tira-dias" role="tablist" aria-label="Día">
+        {dias.map((f) => {
+          const dato = semanaHoy?.find((x) => String(x.fecha).slice(0, 10) === f);
+          const meta = semanaMetas?.kcal;
+          const punto = !dato?.kcal ? "" : meta && dato.kcal >= meta * 0.9 && dato.kcal <= meta * 1.1 ? "ok" : "con";
+          return (
+            <button key={f} role="tab" aria-selected={f === fecha} className={f === fecha ? "activa" : ""} onClick={() => setFecha(f)}>
+              <small>{diaSemana(f)}</small>
+              <b>{Number(f.slice(8))}</b>
+              <i className={punto} />
+            </button>
+          );
+        })}
       </div>
 
       <Estado cargando={cargando && !d} error={!d && error}>
         {d && (
           <>
-            <Card>
-              <Progreso etiqueta="Calorías" valor={d.totales.kcal} meta={d.metas.kcal} unidad="kcal" />
-              <Progreso etiqueta="Proteína" valor={d.totales.proteina} meta={d.metas.proteina} unidad="g" exceso="bueno" />
-              <p className="suave chico-txt">
-                Carbos {num(d.totales.carbos)} g · Grasa {num(d.totales.grasa)} g
-                {!d.metas.kcal && <> · <button className="enlace ver" onClick={() => ir("ajustes")}>definir metas</button></>}
-              </p>
-            </Card>
+            <Resumen>
+              <div className="resumen-fila">
+                <Anillo valor={d.totales.kcal} meta={d.metas.kcal} tamano={112} grosor={10}>
+                  <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
+                    <b style={{ fontSize: "1.35rem" }}>{num(d.totales.kcal)}</b>
+                    <small>{d.metas.kcal ? `de ${num(d.metas.kcal)}` : "kcal"}</small>
+                  </span>
+                </Anillo>
+                <div className="macros">
+                  {[["Proteína", "proteina"], ["Carbos", "carbos"], ["Grasa", "grasa"]].map(([nombre, k]) => {
+                    const meta = d.metas[k];
+                    const v = d.totales[k];
+                    return (
+                      <div key={k} className="macro">
+                        <div className="macro-txt"><span>{nombre}</span><b>{num(v)}{meta ? <small> / {num(meta)} g</small> : " g"}</b></div>
+                        <div className="macro-pista"><span style={{ width: `${meta ? Math.min(100, (100 * v) / meta) : 0}%` }} /></div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              {!d.metas.kcal && (
+                <div className="resumen-pie">
+                  <button className="secundario chico" onClick={() => ir("ajustes")}>Definir mis metas</button>
+                </div>
+              )}
+            </Resumen>
+
+            <div className="atajos">
+              <button className="atajo" onClick={() => ir("chat", { camara: true })}><Ico i={Camera} size={20} />Foto</button>
+              <button className="atajo" onClick={() => setHoja("favoritas")}><Ico i={Star} size={20} />Favoritas</button>
+              <button className="atajo" onClick={() => setHoja("manual")}><Ico i={PenLine} size={20} />Manual</button>
+            </div>
 
             {COMIDAS.map((c) => {
               const items = d.items.filter((i) => i.comida === c);
               if (!items.length) return null;
               const kcal = items.reduce((s, i) => s + i.kcal, 0);
               return (
-                <Card key={c} titulo={`${c[0].toUpperCase()}${c.slice(1)}`} accion={<span className="suave">{num(kcal)} kcal</span>}>
+                <Card key={c}>
+                  <div className="card-cab">
+                    <span style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+                      <IconoFila icono={ICONO_COMIDA[c]} tono="acento" />
+                      <h2>{`${c[0].toUpperCase()}${c.slice(1)}`}</h2>
+                    </span>
+                    <span className="monto">{num(kcal)} <small className="suave">kcal</small></span>
+                  </div>
                   <ul className="lista">
                     {items.map((i) => (
                       <li key={i.id} className="fila">
@@ -80,7 +125,7 @@ export default function Comida({ ir }) {
             })}
             {!d.items.length && <p className="suave centro-txt">Nada registrado {esHoy ? "hoy" : "este día"}.</p>}
 
-            <Card titulo="Últimos 7 días · calorías">
+            <Card titulo="Calorías · últimos 7 días">
               <Columnas datos={d.semana} valor={(x) => x.kcal} meta={d.metas.kcal}
                         etiqueta={(x) => diaSemana(x.fecha)} formato={(v) => `${num(v)} kcal`} />
             </Card>

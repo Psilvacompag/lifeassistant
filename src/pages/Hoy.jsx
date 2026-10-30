@@ -1,7 +1,11 @@
-import { Camera, ChevronRight, MessageCircle, Plus } from "lucide-react";
+import { AlertTriangle, Camera, ChevronRight, MessageCircle, Newspaper, Plus } from "lucide-react";
+import { AgendaHoy } from "../componentes.jsx";
 import { Ico } from "../iconos.jsx";
-import { DosisLista, RutinaLista } from "../componentes.jsx";
-import { Badge, Card, Estado, Progreso, clp, fechaCorta, fechaHora, num, useApi } from "../ui.jsx";
+import {
+  Anillo, Avatar, Badge, Card, Estado, FechaBloque, IconoFila, Resumen, Seccion, clp, fechaCorta, fechaHora, num, useApi,
+} from "../ui.jsx";
+
+const mismoDia = (iso, fecha) => new Date(iso).toLocaleDateString("sv-SE") === String(fecha).slice(0, 10);
 
 export default function Hoy({ nombre, ir }) {
   const { data: h, error, cargando } = useApi("/hoy");
@@ -11,97 +15,113 @@ export default function Hoy({ nombre, ir }) {
     const hora = new Date().getHours();
     return hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
   })();
+  const n = h?.nutricion;
+  const citasHoy = h?.citas.filter((c) => mismoDia(c.inicio, h.fecha)) ?? [];
+  const proximas = h?.citas.filter((c) => !mismoDia(c.inicio, h.fecha)) ?? [];
+  const pendientes = h?.dosis.filter((d) => d.estado === "pendiente").length ?? 0;
+
   return (
     <div className="pagina">
-      <header className="pagina-cab">
-        <h1>{saludo}, {nombre}</h1>
-        {h && <p className="suave">{fechaCorta(h.fecha)} · {h.hora}</p>}
+      <header className="cab-inicio">
+        <div className="pagina-cab">
+          <p className="suave chico-txt">{h ? fechaCorta(h.fecha) : " "}</p>
+          <h1>{saludo}, {nombre}</h1>
+        </div>
+        <button className="icono" onClick={() => ir("ajustes")} aria-label="Ajustes"><Avatar texto={nombre} /></button>
       </header>
+
       <Estado cargando={cargando && !h} error={!h && error}>
         {h && (
           <>
+            <Resumen>
+              <div className="resumen-anillos">
+                <div className="resumen-anillo">
+                  <Anillo valor={n.totales.kcal} meta={n.metas.kcal} tamano={68} grosor={7}>
+                    <small>{n.metas.kcal ? `${Math.round((100 * n.totales.kcal) / n.metas.kcal)}%` : "—"}</small>
+                  </Anillo>
+                  <span className="datos">
+                    <span className="resumen-etiqueta">Calorías</span>
+                    <b>{num(n.totales.kcal)}</b>
+                    <small>{n.metas.kcal ? `de ${num(n.metas.kcal)}` : "sin meta"}</small>
+                  </span>
+                </div>
+                <div className="resumen-anillo">
+                  <Anillo valor={n.totales.proteina} meta={n.metas.proteina} tamano={68} grosor={7}>
+                    <small>{n.metas.proteina ? `${Math.round((100 * n.totales.proteina) / n.metas.proteina)}%` : "—"}</small>
+                  </Anillo>
+                  <span className="datos">
+                    <span className="resumen-etiqueta">Proteína</span>
+                    <b>{num(n.totales.proteina)} g</b>
+                    <small>{n.metas.proteina ? `de ${num(n.metas.proteina)} g` : "sin meta"}</small>
+                  </span>
+                </div>
+              </div>
+              <div className="resumen-pie">
+                <div><small>Te quedan</small><b>{n.restante.kcal !== null ? `${num(Math.max(0, n.restante.kcal))} kcal` : "—"}</b></div>
+                <div><small>Gastado en el mes</small><b>{clp(h.finanzas.total_clp)}</b></div>
+                <div><small>Peso</small><b>{h.peso ? `${num(h.peso.tendencia, 1)} kg` : "—"}</b></div>
+              </div>
+            </Resumen>
+
             <div className="atajos">
               <button className="atajo" onClick={() => ir("chat", { camara: true })}><Ico i={Camera} size={20} />Foto de comida</button>
               <button className="atajo" onClick={() => ir("comida")}><Ico i={Plus} size={20} />Registrar</button>
               <button className="atajo" onClick={() => ir("chat")}><Ico i={MessageCircle} size={20} />Preguntar</button>
             </div>
 
-            <Card titulo="Comida de hoy" accion={<button className="enlace ver" onClick={() => ir("comida")}>Ver<Ico i={ChevronRight} size={16} /></button>}>
-              {!h.nutricion.metas.kcal && (
-                <p className="suave">
-                  Define tus metas en <button className="enlace ver" onClick={() => ir("ajustes")}>Ajustes</button> para ver cuánto te falta.
-                </p>
-              )}
-              <Progreso etiqueta="Calorías" valor={h.nutricion.totales.kcal} meta={h.nutricion.metas.kcal} unidad="kcal" />
-              <Progreso etiqueta="Proteína" valor={h.nutricion.totales.proteina} meta={h.nutricion.metas.proteina}
-                        unidad="g" exceso="bueno" />
-            </Card>
-
-            {h.dosis.length > 0 && (
-              <Card titulo="Remedios y tratamientos">
-                <DosisLista dosis={h.dosis} />
+            <Seccion titulo="Agenda de hoy" accion={pendientes > 0 && <Badge tono="acento">{pendientes} pendiente{pendientes > 1 ? "s" : ""}</Badge>}>
+              <Card>
+                <AgendaHoy dosis={h.dosis} rutina={h.rutina} citasHoy={citasHoy} alIr={ir} />
               </Card>
-            )}
+            </Seccion>
 
-            {(h.rutina.am.length > 0 || h.rutina.pm.length > 0) && (
-              <Card titulo="Rutina de cuidado" accion={<button className="enlace ver" onClick={() => ir("cuidado")}>Ver<Ico i={ChevronRight} size={16} /></button>}>
-                {h.rutina.am.length > 0 && (<><h3>Mañana</h3><RutinaLista pasos={h.rutina.am} /></>)}
-                {h.rutina.pm.length > 0 && (<><h3>Noche</h3><RutinaLista pasos={h.rutina.pm} /></>)}
-              </Card>
+            {proximas.length > 0 && (
+              <Seccion titulo="Próximas citas" accion={<button className="enlace ver" onClick={() => ir("salud")}>Ver<Ico i={ChevronRight} size={16} /></button>}>
+                <Card>
+                  <ul className="lista">
+                    {proximas.slice(0, 3).map((c) => (
+                      <li key={c.id} className="fila">
+                        <FechaBloque iso={c.inicio} />
+                        <span className="fila-txt">
+                          <b>{c.titulo}</b>
+                          <small className="suave">{fechaHora(c.inicio)}{c.lugar && ` · ${c.lugar}`}</small>
+                          {c.preparacion && <small className="nota-estado serio">Preparación: {c.preparacion}</small>}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              </Seccion>
             )}
-
-            {h.citas.length > 0 && (
-              <Card titulo="Próximas citas" accion={<button className="enlace ver" onClick={() => ir("salud")}>Ver<Ico i={ChevronRight} size={16} /></button>}>
-                <ul className="lista">
-                  {h.citas.slice(0, 3).map((c) => (
-                    <li key={c.id} className="fila">
-                      <span className="fila-txt">
-                        <b>{c.titulo}</b>
-                        <small className="suave">{fechaHora(c.inicio)}{c.lugar && ` · ${c.lugar}`}</small>
-                        {c.preparacion && <small className="nota-estado serio">Preparación: {c.preparacion}</small>}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            )}
-
-            <div className="tiles">
-              <button className="tile" onClick={() => ir("finanzas")}>
-                <small className="suave">Gastado este mes</small>
-                <b>{clp(h.finanzas.total_clp)}</b>
-                {h.finanzas.por_confirmar > 0 && <Badge tono="aviso">{h.finanzas.por_confirmar} por confirmar</Badge>}
-              </button>
-              <button className="tile" onClick={() => ir("fitness")}>
-                <small className="suave">Peso (tendencia)</small>
-                <b>{h.peso ? `${num(h.peso.tendencia, 1)} kg` : "—"}</b>
-                {!h.peso && <small className="suave">registra tu peso</small>}
-              </button>
-            </div>
 
             {nuevas.length > 0 && (
-              <Card titulo="Novedades para ti" accion={<button className="enlace ver" onClick={() => ir("novedades")}>Ver<Ico i={ChevronRight} size={16} /></button>}>
-                <ul className="lista">
-                  {nuevas.map((n) => (
-                    <li key={n.id} className="fila clic" onClick={() => ir("novedades")}>
-                      <span className="fila-txt"><b>{n.titulo}</b><small className="suave">{n.tema} · {n.fuente}</small></span>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
+              <Seccion titulo="Novedades para ti" accion={<button className="enlace ver" onClick={() => ir("novedades")}>Ver<Ico i={ChevronRight} size={16} /></button>}>
+                <Card>
+                  <ul className="lista">
+                    {nuevas.map((x) => (
+                      <li key={x.id} className="fila clic" onClick={() => ir("novedades")}>
+                        <IconoFila icono={Newspaper} tono="neutro" />
+                        <span className="fila-txt"><b>{x.titulo}</b><small className="suave">{x.tema} · {x.fuente}</small></span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              </Seccion>
             )}
 
             {h.por_vencer.length > 0 && (
-              <Card titulo="Productos por vencer">
-                <ul className="lista">
-                  {h.por_vencer.map((p) => (
-                    <li key={p.id} className="fila">
-                      <span className="fila-txt"><b>{p.nombre}</b><small className="suave">{p.area}</small></span>
-                      <Badge tono="aviso">vence {fechaCorta(p.vence)}</Badge>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
+              <Seccion titulo="Atención">
+                <Card>
+                  <ul className="lista">
+                    {h.por_vencer.map((p) => (
+                      <li key={p.id} className="fila">
+                        <IconoFila icono={AlertTriangle} tono="aviso" />
+                        <span className="fila-txt"><b>{p.nombre}</b><small className="suave">Vence {fechaCorta(p.vence)} · {p.area}</small></span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              </Seccion>
             )}
           </>
         )}

@@ -2,7 +2,7 @@ import { ChevronRight, Minus, Plus, TrendingDown, TrendingUp } from "lucide-reac
 import { Ico } from "../iconos.jsx";
 import { useState } from "react";
 import { api, avisarCambio } from "../api.js";
-import { Campo, Card, Estado, Formulario, Hoja, LineaPeso, fechaCorta, isoLocal, limpiar, num, useApi } from "../ui.jsx";
+import { Campo, Card, Estado, Formulario, Hoja, LineaPeso, Resumen, fechaCorta, isoLocal, limpiar, num, useApi } from "../ui.jsx";
 
 export default function Fitness() {
   const { data: f, error, cargando } = useApi("/fitness");
@@ -21,24 +21,29 @@ export default function Fitness() {
       <Estado cargando={cargando && !f} error={!f && error}>
         {f && (
           <>
-            <div className="tiles">
-              <div className="tile">
-                <small className="suave">Ritmo (tendencia)</small>
-                <b className="grande">{m.kg_semana === null ? "—" : `${m.kg_semana > 0 ? "+" : ""}${num(m.kg_semana, 2)} kg/sem`}</b>
-                {m.kg_semana !== null && <small className="suave" style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}><Ico i={m.kg_semana < 0 ? TrendingDown : m.kg_semana > 0 ? TrendingUp : Minus} size={14} />{m.kg_semana < 0 ? "bajando" : m.kg_semana > 0 ? "subiendo" : "estable"}</small>}
+            <Resumen>
+              <span className="resumen-etiqueta">Peso · tendencia</span>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "0.6rem", flexWrap: "wrap" }}>
+                <span className="resumen-cifra">{m.tendencia.length ? `${num(m.tendencia.at(-1).tendencia, 1)} kg` : "—"}</span>
+                {m.kg_semana !== null && (
+                  <span className="badge" style={{ background: "rgb(255 255 255 / 0.14)", color: "inherit" }}>
+                    <Ico i={m.kg_semana < 0 ? TrendingDown : m.kg_semana > 0 ? TrendingUp : Minus} size={12} />
+                    {m.kg_semana > 0 ? "+" : ""}{num(m.kg_semana, 2)} kg/sem
+                  </span>
+                )}
               </div>
-              <div className="tile">
-                <small className="suave">Cintura</small>
-                <b className="grande">{ultimaCintura ? `${num(ultimaCintura.cintura_cm, 1)} cm` : "—"}</b>
-                {ultimaCintura && <small className="suave">{fechaCorta(ultimaCintura.fecha)}</small>}
+              <div className="resumen-pie">
+                <div><small>Cintura</small><b>{ultimaCintura ? `${num(ultimaCintura.cintura_cm, 1)} cm` : "—"}</b></div>
+                <div><small>Entrenos · 7 días</small><b>{f.entrenos.filter((w) => (Date.now() - new Date(`${w.fecha}T12:00:00`)) / 864e5 < 7).length}</b></div>
+                <div><small>Registros</small><b>{m.registros.length}</b></div>
               </div>
-            </div>
+            </Resumen>
 
-            <Card titulo="Peso · últimos 90 días" accion={<button className="chico secundario" onClick={() => setHoja("medidas")}><Ico i={Plus} size={16} />Medidas</button>}>
+            <Card titulo="Peso · últimos 90 días" accion={<button className="enlace ver" onClick={() => setHoja("medidas")}><Ico i={Plus} size={16} />Medidas</button>}>
               <LineaPeso puntos={m.tendencia} />
             </Card>
 
-            <Card titulo="Entrenamientos" accion={<button className="chico secundario" onClick={() => setHoja("entreno")}><Ico i={Plus} size={16} />Entreno</button>}>
+            <Card titulo="Entrenamientos" accion={<button className="enlace ver" onClick={() => setHoja("entreno")}><Ico i={Plus} size={16} />Entreno</button>}>
               {!f.entrenos.length && <p className="suave">Registra tus sesiones aquí o cuéntaselas al chat ("hoy hice press banca 4x8 con 80").</p>}
               <ul className="lista">
                 {f.entrenos.map((w) => (

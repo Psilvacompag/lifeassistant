@@ -287,3 +287,74 @@ export function LineaPeso({ puntos }) {
     </div>
   );
 }
+
+// ── Piezas de diseño: resumen, anillos, secciones, filas con ícono ──────────
+/** Anillo de progreso hacia una meta (una serie: no necesita leyenda; el rótulo va al lado). */
+export function Anillo({ valor, meta, tamano = 92, grosor = 9, children }) {
+  const r = (tamano - grosor) / 2;
+  const c = 2 * Math.PI * r;
+  const pct = meta ? Math.min(1, valor / meta) : 0;
+  return (
+    <div className="anillo-caja" style={{ width: tamano, height: tamano }}>
+      <svg width={tamano} height={tamano} viewBox={`0 0 ${tamano} ${tamano}`} aria-hidden="true">
+        <circle cx={tamano / 2} cy={tamano / 2} r={r} className="anillo-pista" strokeWidth={grosor} fill="none" />
+        <circle cx={tamano / 2} cy={tamano / 2} r={r} className="anillo-valor" strokeWidth={grosor} fill="none"
+                strokeDasharray={`${c * pct} ${c}`} strokeLinecap="round" transform={`rotate(-90 ${tamano / 2} ${tamano / 2})`} />
+      </svg>
+      <div className="anillo-centro">{children}</div>
+    </div>
+  );
+}
+
+/** Bloque de resumen en el color de acento: el punto focal de cada pantalla. */
+export function Resumen({ children, className = "" }) {
+  return <section className={`resumen ${className}`}>{children}</section>;
+}
+
+/** Título de un grupo de tarjetas (fuera de la tarjeta). */
+export function Seccion({ titulo, accion, children }) {
+  return (
+    <div className="seccion">
+      <div className="seccion-cab">
+        <h3>{titulo}</h3>
+        {accion}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Cuadro con ícono para el inicio de una fila. tono: acento | bueno | aviso | serio | neutro */
+export function IconoFila({ icono, tono = "acento" }) {
+  return <span className={`icono-fila ${tono}`}><Ico i={icono} size={18} /></span>;
+}
+
+/** Bloque de fecha (02 / NOV) para citas y eventos. */
+export function FechaBloque({ iso }) {
+  const d = new Date(iso);
+  return (
+    <span className="fecha-bloque" aria-hidden="true">
+      <b>{String(d.getDate()).padStart(2, "0")}</b>
+      <small>{d.toLocaleDateString("es-CL", { month: "short" }).replace(".", "")}</small>
+    </span>
+  );
+}
+
+/** Iniciales neutras para comercios (sin colores por entidad: no codifican nada). */
+export function Avatar({ texto }) {
+  const ini = (texto || "?").replace(/[^A-Za-zÁÉÍÓÚÑáéíóúñ0-9 ]/g, " ").trim().split(/\s+/).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+  return <span className="avatar" aria-hidden="true">{ini || "?"}</span>;
+}
+
+/** Mini gráfico de barras (una serie) para resúmenes; sin ejes, con tooltip nativo. */
+export function MiniBarras({ datos, valor, etiqueta, alto = 44 }) {
+  const max = Math.max(...datos.map(valor), 1);
+  return (
+    <div className="mini-barras" style={{ height: alto }} role="img" aria-label="Tendencia">
+      {datos.map((d, i) => (
+        <span key={i} title={`${etiqueta(d)}`} style={{ height: `${Math.max(4, (valor(d) / max) * 100)}%` }}
+              className={valor(d) > 0 ? "" : "vacia"} />
+      ))}
+    </div>
+  );
+}

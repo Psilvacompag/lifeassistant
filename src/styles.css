@@ -404,3 +404,116 @@ details[open] summary .ico { transform: rotate(90deg); }
 @keyframes girar { to { transform: rotate(360deg); } }
 .fila-txt .badge { align-self: flex-start; margin: 0.15rem 0; }
 button.enlace.ver { font-weight: 500; font-size: 0.86rem; gap: 0.1rem; }
+
+/* ── Resumen (punto focal de cada pantalla) ── */
+:root { --resumen-a: #1f3b63; --resumen-b: #2c5185; --resumen-texto: #ffffff; --resumen-suave: rgb(255 255 255 / 0.72); --resumen-pista: rgb(255 255 255 / 0.16); --resumen-valor: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --resumen-a: #18263d; --resumen-b: #1f3352; --resumen-texto: #eef3fb; --resumen-suave: rgb(238 243 251 / 0.66); --resumen-pista: rgb(255 255 255 / 0.1); --resumen-valor: #a9c3ec; }
+}
+:root[data-theme="dark"] { --resumen-a: #18263d; --resumen-b: #1f3352; --resumen-texto: #eef3fb; --resumen-suave: rgb(238 243 251 / 0.66); --resumen-pista: rgb(255 255 255 / 0.1); --resumen-valor: #a9c3ec; }
+.resumen {
+  position: relative; overflow: hidden; border-radius: 20px; padding: 1.1rem 1.15rem;
+  background: linear-gradient(150deg, var(--resumen-a) 0%, var(--resumen-b) 100%);
+  color: var(--resumen-texto); box-shadow: 0 8px 24px rgb(31 59 99 / 0.18);
+}
+.resumen::after {
+  content: ""; position: absolute; inset: auto -40px -60px auto; width: 180px; height: 180px; border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 255 255 / 0.08), transparent 70%); pointer-events: none;
+}
+.resumen .suave, .resumen small { color: var(--resumen-suave); }
+.resumen-etiqueta { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; color: var(--resumen-suave); }
+.resumen-cifra { font-size: 2.1rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.resumen-fila { display: flex; align-items: center; gap: 1.1rem; }
+.resumen-anillos { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.resumen-anillo { display: flex; align-items: center; gap: 0.75rem; }
+.resumen-anillo .datos { display: flex; flex-direction: column; min-width: 0; }
+.resumen-anillo .datos b { font-size: 1.15rem; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.resumen-pie { display: flex; gap: 1.2rem; margin-top: 0.95rem; padding-top: 0.85rem; border-top: 1px solid rgb(255 255 255 / 0.14); flex-wrap: wrap; }
+.resumen-pie div { display: flex; flex-direction: column; }
+.resumen-pie b { font-variant-numeric: tabular-nums; font-size: 0.98rem; }
+.resumen button.secundario { background: rgb(255 255 255 / 0.12); color: var(--resumen-texto); border-color: rgb(255 255 255 / 0.22); }
+.resumen .mini-barras span { background: rgb(255 255 255 / 0.55); }
+.resumen .mini-barras span.vacia { background: rgb(255 255 255 / 0.15); }
+
+.anillo-caja { position: relative; flex: none; }
+.anillo-pista { stroke: var(--superficie-2); }
+.anillo-valor { stroke: var(--serie-1); transition: stroke-dasharray 0.6s ease; }
+.resumen .anillo-pista { stroke: var(--resumen-pista); }
+.resumen .anillo-valor { stroke: var(--resumen-valor); }
+.anillo-centro { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font-variant-numeric: tabular-nums; }
+.anillo-centro b { font-size: 0.95rem; }
+
+/* ── Secciones ── */
+.seccion { display: flex; flex-direction: column; gap: 0.5rem; }
+.seccion-cab { display: flex; align-items: baseline; justify-content: space-between; padding: 0 0.15rem; margin-top: 0.35rem; }
+.seccion-cab h3 { margin: 0; }
+
+/* ── Filas con ícono, fechas y avatares ── */
+.icono-fila { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; flex: none; }
+.icono-fila.acento { background: var(--acento-suave); color: var(--acento-tinta); }
+.icono-fila.bueno { background: var(--bueno-suave); color: var(--bueno); }
+.icono-fila.aviso { background: var(--aviso-suave); color: var(--aviso); }
+.icono-fila.serio { background: var(--critico-suave); color: var(--critico); }
+.icono-fila.neutro { background: var(--superficie-2); color: var(--texto-2); }
+.fecha-bloque {
+  width: 42px; flex: none; border-radius: 11px; border: 1px solid var(--borde); overflow: hidden; text-align: center;
+  display: flex; flex-direction: column; background: var(--superficie);
+}
+.fecha-bloque b { font-size: 1.05rem; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.fecha-bloque small { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; background: var(--acento); color: var(--acento-texto); line-height: 1.6; order: -1; }
+.avatar {
+  width: 36px; height: 36px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  background: var(--superficie-2); color: var(--texto-2); font-size: 0.74rem; font-weight: 700; letter-spacing: 0.02em;
+}
+
+/* ── Línea de tiempo (agenda del día) ── */
+.agenda { list-style: none; margin: 0; padding: 0; position: relative; }
+.agenda li { display: grid; grid-template-columns: 3rem 36px 1fr; gap: 0.7rem; align-items: center; padding: 0.55rem 0; position: relative; }
+.agenda li::before { content: ""; position: absolute; left: calc(3rem + 0.7rem + 17px); top: 0; bottom: 0; width: 2px; background: var(--borde); z-index: 0; }
+.agenda li:first-child::before { top: 50%; }
+.agenda li:last-child::before { bottom: 50%; }
+.agenda li:only-child::before { display: none; }
+.agenda .icono-fila { position: relative; z-index: 1; box-shadow: 0 0 0 4px var(--superficie); }
+.agenda .hora { font-size: 0.85rem; text-align: right; }
+.agenda .contenido-agenda { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; min-width: 0; }
+.agenda li.hecha .fila-txt b { color: var(--suave); text-decoration: line-through; text-decoration-color: var(--borde-fuerte); }
+
+/* ── Mini barras ── */
+.mini-barras { display: flex; align-items: flex-end; gap: 3px; }
+.mini-barras span { flex: 1; border-radius: 3px 3px 0 0; background: var(--serie-1); min-height: 3px; }
+.mini-barras span.vacia { background: var(--superficie-2); }
+
+/* ── Tira de días ── */
+.tira-dias { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.35rem; }
+.tira-dias button {
+  flex-direction: column; gap: 0.15rem; padding: 0.5rem 0; border-radius: 12px; background: var(--superficie);
+  border: 1px solid var(--borde); color: var(--texto-2); font-weight: 500; box-shadow: var(--sombra);
+}
+.tira-dias button small { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--suave); }
+.tira-dias button b { font-size: 1rem; font-variant-numeric: tabular-nums; color: var(--texto); }
+.tira-dias button i { width: 5px; height: 5px; border-radius: 50%; background: transparent; }
+.tira-dias button i.con { background: var(--borde-fuerte); }
+.tira-dias button i.ok { background: var(--bueno); }
+.tira-dias button.activa { background: var(--acento); border-color: var(--acento); }
+.tira-dias button.activa small, .tira-dias button.activa b { color: var(--acento-texto); }
+.tira-dias button.activa i.con, .tira-dias button.activa i.ok { background: var(--acento-texto); }
+
+/* ── Encabezado con avatar ── */
+.cab-inicio { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.cab-inicio .avatar { width: 40px; height: 40px; background: var(--acento-suave); color: var(--acento-tinta); font-size: 0.85rem; }
+
+/* ── Macros en el resumen de comida ── */
+.macros { flex: 1; display: flex; flex-direction: column; gap: 0.6rem; min-width: 0; }
+.macro-txt { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 0.25rem; }
+.macro-txt span { color: var(--resumen-suave); }
+.macro-txt b { font-variant-numeric: tabular-nums; }
+.macro-txt b small { font-weight: 500; }
+.macro-pista { height: 6px; border-radius: 99px; background: var(--resumen-pista); overflow: hidden; }
+.macro-pista span { display: block; height: 100%; border-radius: 99px; background: var(--resumen-valor); }
+
+.contenido-agenda > button.enlace { margin-left: auto; }
+.grupo-dia + .grupo-dia { margin-top: 0.4rem; padding-top: 0.6rem; border-top: 1px solid var(--borde); }
+.grupo-dia-cab {
+  display: flex; justify-content: space-between; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em;
+  font-weight: 600; color: var(--suave); margin-bottom: 0.15rem;
+}
