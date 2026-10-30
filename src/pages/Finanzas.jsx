@@ -56,6 +56,30 @@ export default function Finanzas({ ir }) {
               </button>
             </div>
 
+            {f.estados?.length > 0 && (
+              <Card titulo="Tarjetas">
+                <ul className="lista">
+                  {f.estados.map((s) => {
+                    const monto = s.moneda === "CLP" ? clp(s.monto_facturado) : `US$${Number(s.monto_facturado).toFixed(2)}`;
+                    const vencido = s.fecha_pago && s.fecha_pago < isoLocal();
+                    return (
+                      <li key={s.id} className="fila">
+                        <span className="fila-txt">
+                          <b>{s.tarjeta}</b>
+                          <small className="suave">
+                            Estado al {fechaCorta(s.periodo_hasta)} · {s.movimientos} cargos
+                            {s.fecha_pago && ` · pagar hasta ${fechaCorta(s.fecha_pago)}`}
+                          </small>
+                        </span>
+                        {Number(s.monto_facturado) <= 0 ? <Badge tono="bueno">✓ nada que pagar</Badge>
+                          : vencido ? <Badge>{monto} · vencido</Badge> : <Badge tono="aviso">{monto}</Badge>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Card>
+            )}
+
             {f.por_categoria.length > 0 && (
               <Card titulo="Por categoría">
                 <BarrasH datos={f.por_categoria} valor={(c) => c.monto} etiqueta={(c) => c.categoria} formato={clp} />
