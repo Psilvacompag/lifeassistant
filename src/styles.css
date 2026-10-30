@@ -286,3 +286,26 @@ details summary { cursor: pointer; padding: 0.15rem 0; }
   flex: 1; resize: none; font: inherit; padding: 0.6rem 0.9rem; border-radius: 20px; max-height: 8rem;
   border: 1px solid var(--borde); background: var(--superficie); color: var(--texto);
 }
+
+/* ── Botoneras, chips y novedades ── */
+.botonera { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.chips { display: flex; gap: 0.4rem; overflow-x: auto; scrollbar-width: none; padding-bottom: 0.1rem; }
+.chip-btn {
+  flex: none; background: var(--superficie); color: var(--texto); border: 1px solid var(--borde);
+  font-weight: 500; font-size: 0.88rem; padding: 0.4rem 0.8rem;
+}
+.chip-btn.activa { background: var(--ai); color: var(--btn-texto); border-color: var(--ai); }
+.chip-btn b { margin-left: 0.25rem; font-size: 0.78rem; }
+.novedad { display: flex; flex-direction: column; gap: 0.35rem; }
+.novedad.leida { opacity: 0.72; }
+.novedad p { margin: 0; }
+.novedad-meta { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+.novedad-titulo { color: var(--texto); font-weight: 700; text-decoration: none; line-height: 1.3; }
+.novedad-titulo:hover { text-decoration: underline; }
+.por-que { color: var(--texto-2); }
+.novedad-pie { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
+.punto-nuevo { width: 8px; height: 8px; border-radius: 50%; background: var(--shu); margin-left: auto; }
+.aviso-card.bueno { border-color: var(--bueno); }
+.aviso-card.aviso { border-color: var(--aviso); }
+.aviso-card.serio { border-color: var(--serio); }
+.aviso-card button { margin-top: 0.5rem; }

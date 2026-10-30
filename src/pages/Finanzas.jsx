@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { api, avisarCambio } from "../api.js";
-import { Badge, BarrasH, Campo, Card, Estado, Formulario, Hoja, clp, fechaCorta, isoLocal, limpiar, useApi } from "../ui.jsx";
+import { Badge, BarrasH, Campo, Card, Estado, Formulario, Hoja, clp, fechaCorta, fechaHora, isoLocal, limpiar, useApi } from "../ui.jsx";
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const CATEGORIAS = ["supermercado", "comida", "delivery", "transporte", "salud", "cuidado personal", "suplementos",
   "deporte", "suscripciones", "hogar", "ropa", "tecnología", "entretenimiento", "viajes", "cuentas", "otros"];
 const MEDIOS = { tarjeta_credito: "tarjeta de crédito", tarjeta_debito: "débito", efectivo: "efectivo", transferencia: "transferencia", otro: "otro" };
 
-export default function Finanzas() {
+export default function Finanzas({ ir }) {
+  const google = useApi("/google/estado");
   const hoy = new Date();
   const [mes, setMes] = useState({ anio: hoy.getFullYear(), mes: hoy.getMonth() + 1 });
   const { data: f, error, cargando } = useApi(`/finanzas?anio=${mes.anio}&mes=${mes.mes}`);
@@ -27,10 +28,19 @@ export default function Finanzas() {
         <button className="icono" onClick={() => mover(1)} disabled={esActual} aria-label="Mes siguiente">›</button>
       </header>
 
-      <Card className="aviso-card">
-        <b>📧 Cobros automáticos de BCI y Santander</b>
-        <p className="suave chico-txt">Próxima etapa: conecto tu Gmail y los cobros de tus tarjetas entran solos. Por ahora regístralos aquí o cuéntaselos al chat.</p>
-      </Card>
+      {google.data && !google.data.conectado && (
+        <Card className="aviso-card">
+          <b>📧 Cobros automáticos de BCI y Santander</b>
+          <p className="suave chico-txt">Conecta tu Gmail y los cobros de tus tarjetas entran solos, con aviso al celular.</p>
+          <button className="chico" onClick={() => ir("ajustes")}>Conectar Gmail</button>
+        </Card>
+      )}
+      {google.data?.conectado && (
+        <p className="suave chico-txt">
+          📧 Gmail {google.data.error ? <span className="error">con error: {google.data.error}</span> : "conectado"} · revisado{" "}
+          {google.data.ultimo_sync ? fechaHora(google.data.ultimo_sync) : "aún no"}
+        </p>
+      )}
 
       <Estado cargando={cargando && !f} error={!f && error}>
         {f && (
@@ -109,7 +119,10 @@ export default function Finanzas() {
               {[...new Set([hoja.gasto.categoria, ...CATEGORIAS])].map((c) => <option key={c} value={c}>{c}</option>)}
             </Campo>
             <Campo label="Notas" name="notas" defaultValue={hoja.gasto.notas ?? ""} />
-            <p className="suave chico-txt">Origen: {hoja.gasto.origen}{hoja.gasto.tarjeta && ` · ${hoja.gasto.tarjeta}`}</p>
+            <p className="suave chico-txt">
+              Origen: {hoja.gasto.origen === "gmail" ? "correo del banco" : hoja.gasto.origen}{hoja.gasto.tarjeta && ` · ${hoja.gasto.tarjeta}`}
+              {hoja.gasto.origen === "gmail" && " · si cambias la categoría, la recuerdo para este comercio"}
+            </p>
             <button type="button" className="secundario peligro" onClick={async () => {
               if (!confirm("¿Borrar este gasto?")) return;
               await api(`/gastos/${hoja.gasto.id}`, { method: "DELETE" });

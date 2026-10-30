@@ -10,6 +10,7 @@ import Fitness from "./pages/Fitness.jsx";
 import Hoy from "./pages/Hoy.jsx";
 import Mas from "./pages/Mas.jsx";
 import Memoria from "./pages/Memoria.jsx";
+import Novedades from "./pages/Novedades.jsx";
 import Salud from "./pages/Salud.jsx";
 
 const NAV = [
@@ -19,8 +20,12 @@ const NAV = [
   ["salud", "💊", "Salud"],
   ["mas", "☰", "Más"],
 ];
-const DE_MAS = ["finanzas", "fitness", "cuidado", "memoria", "ajustes"];
-const rutaActual = () => location.hash.replace(/^#\/?/, "") || "hoy";
+const DE_MAS = ["finanzas", "fitness", "cuidado", "novedades", "memoria", "ajustes"];
+// "#/ajustes?google=ok" → ruta "ajustes" + query
+const leerHash = () => {
+  const [ruta, q = ""] = location.hash.replace(/^#\/?/, "").split("?");
+  return { ruta: ruta || "hoy", query: new URLSearchParams(q) };
+};
 
 export default function App() {
   const [estado, setEstado] = useState("cargando"); // cargando | fuera | denegado | dentro
@@ -76,13 +81,13 @@ function Pantalla({ children }) {
 }
 
 function Shell({ perfil }) {
-  const [ruta, setRuta] = useState(rutaActual);
+  const [{ ruta, query }, setHash] = useState(leerHash);
   const [camara, setCamara] = useState(false);
   const nombre = perfil?.name?.split(" ")[0] ?? "";
 
   useEffect(() => {
     const cambio = () => {
-      setRuta(rutaActual());
+      setHash(leerHash());
       window.scrollTo(0, 0);
     };
     window.addEventListener("hashchange", cambio);
@@ -101,11 +106,12 @@ function Shell({ perfil }) {
     chat: <Chat abrirCamara={camara} onCamaraUsada={camaraUsada} />,
     salud: <Salud />,
     mas: <Mas ir={ir} />,
-    finanzas: <Finanzas />,
+    finanzas: <Finanzas ir={ir} />,
     fitness: <Fitness />,
     cuidado: <Cuidado ir={ir} />,
+    novedades: <Novedades />,
     memoria: <Memoria />,
-    ajustes: <Ajustes perfil={perfil} />,
+    ajustes: <Ajustes perfil={perfil} query={query} />,
   }[ruta] ?? <Hoy nombre={nombre} ir={ir} />;
   const activa = DE_MAS.includes(ruta) ? "mas" : ruta;
 

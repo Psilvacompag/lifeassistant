@@ -91,3 +91,44 @@ export function reducirImagen(file, max = 1600) {
     img.src = URL.createObjectURL(file);
   });
 }
+
+// ── Notificaciones push ─────────────────────────────────────────────────────
+export const pushSoportado = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+
+function b64aBytes(b64) {
+  const s = atob((b64 + "=".repeat((4 - (b64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(s, (c) => c.charCodeAt(0));
+}
+
+async function registroSW() {
+  const reg = await Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise((_, no) => setTimeout(() => no(new Error("La app aún se está instalando; recarga e intenta de nuevo")), 8000)),
+  ]);
+  return reg;
+}
+
+export async function suscripcionActual() {
+  if (!pushSoportado()) return null;
+  const reg = await navigator.serviceWorker.getRegistration();
+  return reg ? reg.pushManager.getSubscription() : null;
+}
+
+/** Pide permiso, suscribe este dispositivo y lo registra en la API. */
+export async function activarPush() {
+  if (!pushSoportado()) throw new Error("Este navegador no soporta notificaciones");
+  const permiso = await Notification.requestPermission();
+  if (permiso !== "granted") throw new Error("Permiso denegado: actívalo en la configuración del navegador para este sitio");
+  const reg = await registroSW();
+  const { clave } = await api("/push/clave");
+  const sub = (await reg.pushManager.getSubscription()) ??
+    (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64aBytes(clave) }));
+  await api("/push/suscribir", { method: "POST", body: { ...sub.toJSON(), agente: navigator.userAgent.slice(0, 300) } });
+}
+
+export async function desactivarPush() {
+  const sub = await suscripcionActual();
+  if (!sub) return;
+  await api("/push/baja", { method: "POST", body: { endpoint: sub.endpoint } });
+  await sub.unsubscribe();
+}

@@ -1,12 +1,26 @@
-import { api, avisarCambio } from "../api.js";
+import { useEffect, useState } from "react";
+import { activarPush, api, avisarCambio, desactivarPush, pushSoportado, suscripcionActual } from "../api.js";
 import { salir } from "../firebase.js";
-import { Campo, Card, Estado, Formulario, limpiar, useApi } from "../ui.jsx";
+import { Badge, Campo, Card, Estado, Formulario, fechaHora, limpiar, useApi } from "../ui.jsx";
 
-export default function Ajustes({ perfil: cuenta }) {
+const MENSAJES_GOOGLE = {
+  ok: ["bueno", "✓ Google conectado. Reviso tu correo cada 2 minutos."],
+  cancelado: ["aviso", "Cancelaste la conexión con Google."],
+  vencido: ["aviso", "El enlace venció; intenta conectar de nuevo."],
+  error: ["serio", "Google no entregó el permiso. Intenta de nuevo."],
+};
+
+export default function Ajustes({ perfil: cuenta, query }) {
   const { data: p, error, cargando } = useApi("/perfil");
+  const aviso = MENSAJES_GOOGLE[query?.get("google")];
   return (
     <div className="pagina">
       <header className="pagina-cab"><h1>Ajustes</h1></header>
+      {aviso && <Card className={`aviso-card ${aviso[0]}`}><b>{aviso[1]}</b></Card>}
+
+      <Notificaciones />
+      <Google />
+
       <Estado cargando={cargando && !p} error={!p && error}>
         {p && (
           <Card titulo="Metas y perfil">
@@ -31,18 +45,127 @@ export default function Ajustes({ perfil: cuenta }) {
         )}
       </Estado>
 
-      <Card titulo="Conexiones">
-        <ul className="lista">
-          <li className="fila"><span className="fila-txt"><b>Gmail</b><small className="suave">Cobros de BCI y Santander, citas médicas</small></span><span className="badge neutro">próximamente</span></li>
-          <li className="fila"><span className="fila-txt"><b>Google Calendar</b><small className="suave">Citas, entrenos y recordatorios</small></span><span className="badge neutro">próximamente</span></li>
-          <li className="fila"><span className="fila-txt"><b>Galaxy Watch</b><small className="suave">Sueño, pasos y peso (app Android)</small></span><span className="badge neutro">más adelante</span></li>
-        </ul>
-      </Card>
-
       <Card titulo="Cuenta">
         <p>{cuenta?.name}<br /><small className="suave">{cuenta?.email}</small></p>
         <button className="secundario" onClick={salir}>Cerrar sesión</button>
       </Card>
     </div>
+  );
+}
+
+function Notificaciones() {
+  const estado = useApi("/push/estado");
+  const [activa, setActiva] = useState(null); // este dispositivo
+  const [ocupado, setOcupado] = useState(false);
+  const [msg, setMsg] = useState("");
+  const permiso = pushSoportado() ? Notification.permission : "no-soportado";
+
+  useEffect(() => {
+    suscripcionActual().then((s) => setActiva(Boolean(s))).catch(() => setActiva(false));
+  }, []);
+
+  async function hacer(fn, ok) {
+    setOcupado(true);
+    setMsg("");
+    try {
+      await fn();
+      setMsg(ok);
+      setActiva(Boolean(await suscripcionActual()));
+      estado.recargar();
+    } catch (e) {
+      setMsg(`⚠️ ${e.message}`);
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  return (
+    <Card titulo="Notificaciones" accion={activa ? <Badge tono="bueno">✓ activas aquí</Badge> : <Badge>apagadas aquí</Badge>}>
+      <p className="suave chico-txt">
+        Remedios (a la hora, a los 15 y a los 45 min, con botón "Tomé"), citas el día antes y 2 h antes, stock bajo,
+        rutina de noche, cobros de tarjeta y novedades.
+      </p>
+      {permiso === "no-soportado" && <p className="error">Este navegador no soporta notificaciones. En Android usa Chrome.</p>}
+      {permiso === "denied" && (
+        <p className="error">Bloqueaste las notificaciones para este sitio. Actívalas en Chrome → ⋮ → Configuración → Notificaciones.</p>
+      )}
+      <div className="botonera">
+        {!activa && permiso !== "no-soportado" && (
+          <button disabled={ocupado} onClick={() => hacer(activarPush, "✓ Listo. Te mandé una de prueba.").then(() => api("/push/probar", { method: "POST" }).catch(() => {}))}>
+            Activar en este dispositivo
+          </button>
+        )}
+        {activa && (
+          <>
+            <button className="secundario" disabled={ocupado}
+                    onClick={() => hacer(() => api("/push/probar", { method: "POST" }), "Enviada: debería llegarte en segundos.")}>
+              Probar
+            </button>
+            <button className="secundario" disabled={ocupado} onClick={() => hacer(desactivarPush, "Desactivadas en este dispositivo.")}>
+              Desactivar
+            </button>
+          </>
+        )}
+      </div>
+      {msg && <p className="chico-txt">{msg}</p>}
+      {estado.data && (
+        <p className="suave chico-txt">
+          {estado.data.dispositivos} dispositivo{estado.data.dispositivos === 1 ? "" : "s"} suscrito{estado.data.dispositivos === 1 ? "" : "s"}
+          {estado.data.ultimos[0] && <> · último aviso: {estado.data.ultimos[0].titulo} ({fechaHora(estado.data.ultimos[0].enviado)})</>}
+        </p>
+      )}
+    </Card>
+  );
+}
+
+function Google() {
+  const g = useApi("/google/estado");
+  const [ocupado, setOcupado] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  async function conectar() {
+    setOcupado(true);
+    setMsg("");
+    try {
+      const { url } = await api("/google/conectar");
+      location.href = url;
+    } catch (e) {
+      setMsg(e.status === 503 ? "Falta un paso de configuración de mi lado (cliente OAuth). Te aviso cuando esté." : e.message);
+      setOcupado(false);
+    }
+  }
+  async function desconectar() {
+    if (!confirm("¿Desconectar Google? Dejo de leer tus correos y revoco el permiso.")) return;
+    await api("/google", { method: "DELETE" });
+    g.recargar();
+  }
+
+  return (
+    <Card titulo="Google" accion={g.data?.conectado ? <Badge tono={g.data.error ? "serio" : "bueno"}>{g.data.error ? "con error" : "✓ conectado"}</Badge> : null}>
+      <Estado cargando={g.cargando && !g.data} error={!g.data && g.error}>
+        {g.data?.conectado ? (
+          <>
+            <p className="chico-txt">
+              <b>{g.data.email}</b><br />
+              <span className="suave">
+                Revisado {g.data.ultimo_sync ? fechaHora(g.data.ultimo_sync) : "aún no"} · {g.data.importados?.gastos ?? 0} cobros y{" "}
+                {g.data.importados?.citas ?? 0} citas importados
+              </span>
+            </p>
+            {g.data.error && <p className="error chico-txt">{g.data.error}</p>}
+            <button className="secundario" onClick={desconectar}>Desconectar</button>
+          </>
+        ) : (
+          <>
+            <p className="suave chico-txt">
+              Leo solo los correos de BCI, Santander y clínicas: los cobros de tus tarjetas entran solos a Finanzas y las horas
+              médicas a Salud. El resto de tu correo no se procesa ni se guarda.
+            </p>
+            <button disabled={ocupado} onClick={conectar}>Conectar Gmail</button>
+          </>
+        )}
+        {msg && <p className="chico-txt">{msg}</p>}
+      </Estado>
+    </Card>
   );
 }

@@ -14,7 +14,7 @@ const ACCIONES = {
   mejor_marca: "buscando tu mejor marca", ver_salud: "revisando salud", agregar_medicamento: "agregando el remedio",
   marcar_dosis: "marcando la dosis", agregar_cita: "agendando la cita", ver_cuidado: "revisando tu rutina",
   agregar_producto: "agregando el producto", agregar_paso_rutina: "armando la rutina", recordar: "guardando en memoria",
-  buscar_memoria: "buscando en memoria", WebSearch: "buscando en la web", WebFetch: "leyendo una página",
+  buscar_memoria: "buscando en memoria", ver_novedades: "revisando novedades", WebSearch: "buscando en la web", WebFetch: "leyendo una página",
 };
 
 export default function Chat({ abrirCamara, onCamaraUsada }) {

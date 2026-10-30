@@ -2,6 +2,7 @@ const SECCIONES = [
   ["finanzas", "💳", "Finanzas", "Gastos del mes y categorías"],
   ["fitness", "🏋️", "Fitness", "Peso, cintura y entrenos"],
   ["cuidado", "🧴", "Cuidado personal", "Cara, pelo, barba y rutinas"],
+  ["novedades", "📰", "Novedades", "Lo nuevo de tus temas, con fuentes"],
   ["memoria", "🧠", "Lo que sé de ti", "Memoria del asistente"],
   ["ajustes", "⚙️", "Ajustes", "Metas, perfil y conexiones"],
 ];

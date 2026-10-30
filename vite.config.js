@@ -10,7 +10,12 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      // Service worker propio (src/sw.js): además de cachear la app, recibe las notificaciones push.
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.js",
       registerType: "autoUpdate",
+      injectRegister: "auto",
       includeAssets: ["icon.svg"],
       manifest: {
         name: "LifeAssistant",
@@ -24,8 +29,7 @@ export default defineConfig({
         theme_color: "#233a5e",
         icons: [{ src: "icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any maskable" }],
       },
-      // La API nunca se cachea: solo el "cascarón" de la app.
-      workbox: { navigateFallbackDenylist: [/^\/api/], runtimeCaching: [] },
+      injectManifest: { globPatterns: ["**/*.{js,css,html,svg}"] },
     }),
   ],
 });

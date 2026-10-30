@@ -3,6 +3,8 @@ import { Badge, Card, Estado, Progreso, clp, fechaCorta, fechaHora, num, useApi 
 
 export default function Hoy({ nombre, ir }) {
   const { data: h, error, cargando } = useApi("/hoy");
+  const nov = useApi("/novedades");
+  const nuevas = nov.data?.items.filter((n) => !n.leido).slice(0, 3) ?? [];
   const saludo = (() => {
     const hora = new Date().getHours();
     return hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
@@ -74,6 +76,18 @@ export default function Hoy({ nombre, ir }) {
                 {!h.peso && <small className="suave">registra tu peso</small>}
               </button>
             </div>
+
+            {nuevas.length > 0 && (
+              <Card titulo="Novedades para ti" accion={<button className="enlace" onClick={() => ir("novedades")}>ver →</button>}>
+                <ul className="lista">
+                  {nuevas.map((n) => (
+                    <li key={n.id} className="fila clic" onClick={() => ir("novedades")}>
+                      <span className="fila-txt"><b>{n.titulo}</b><small className="suave">{n.tema} · {n.fuente}</small></span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
 
             {h.por_vencer.length > 0 && (
               <Card titulo="Productos por vencer">
