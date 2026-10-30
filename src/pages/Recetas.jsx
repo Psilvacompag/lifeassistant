@@ -44,7 +44,7 @@ export default function Recetas() {
     <div className="pagina">
       <header className="pagina-cab">
         <h1>Recetas</h1>
-        <p className="suave">Sanas, altas en proteína y escritas para tu cocina. Quedan guardadas para repetirlas.</p>
+        <p className="suave">Sanas, altas en proteína y escritas para tu cocina. También puedes mandarle al chat un link o captura de una receta y la adapta.</p>
       </header>
 
       <Card className="nueva-receta">
@@ -87,6 +87,16 @@ export default function Recetas() {
   );
 }
 
+function Fuente({ fuente }) {
+  let host = null;
+  try { host = /^https?:\/\//.test(fuente) ? new URL(fuente).hostname.replace(/^www\./, "") : null; } catch { /* texto libre */ }
+  return (
+    <p className="suave chico-txt" style={{ margin: 0 }}>
+      Adaptada de {host ? <a href={fuente} target="_blank" rel="noreferrer">{host}</a> : fuente === "foto" ? "una foto que mandaste" : "una receta que mandaste"}
+    </p>
+  );
+}
+
 function DetalleReceta({ id, onVolver }) {
   const { data: r, error, cargando, recargar } = useApi(`/recetas/${id}`);
   const [tengo, setTengo] = useState({}); // ingredientes marcados
@@ -118,6 +128,7 @@ function DetalleReceta({ id, onVolver }) {
             <header className="pagina-cab">
               <h1 style={{ fontSize: "1.45rem" }}>{d.titulo}</h1>
               <p className="suave">{d.descripcion}</p>
+              {d.fuente && <Fuente fuente={d.fuente} />}
             </header>
             <div className="idea-datos">
               <Badge icono={Clock}>{d.minutos_total} min</Badge>
