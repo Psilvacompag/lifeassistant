@@ -1,6 +1,6 @@
 import { ArrowUp, Camera, Check, Image as ImageIcon, ImagePlus, LoaderCircle, Plus, Sparkles, X } from "lucide-react";
 import { Ico } from "../iconos.jsx";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { avisarCambio, chat, historial, reducirImagen } from "../api.js";
@@ -26,6 +26,20 @@ const ACCIONES = {
 };
 const MAX_FOTOS = 6;
 
+/** Une el historial del servidor con lo local: conserva las miniaturas de las fotos que mandaste desde este equipo. */
+function fusionar(previos, delServidor) {
+  const porId = new Map(previos.filter((m) => m.id && m.fotos).map((m) => [m.id, m.fotos]));
+  const sinId = previos.filter((m) => !m.id && m.fotos);
+  return delServidor.map((m) => {
+    let fotos = porId.get(m.id);
+    if (!fotos && m.role === "user" && m.con_imagen) {
+      const i = sinId.findIndex((x) => !x.content || x.content === m.content);
+      if (i >= 0) [{ fotos }] = sinId.splice(i, 1);
+    }
+    return { ...m, fotos, vivo: m.estado === "escribiendo" };
+  });
+}
+
 export default function Chat({ abrirCamara, onCamaraUsada }) {
   const [mensajes, setMensajes] = useState([]);
   const [texto, setTexto] = useState("");
@@ -45,9 +59,37 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
   const camara = useRef(null);
   const galeria = useRef(null);
 
-  useEffect(() => {
-    historial().then(setMensajes).catch(() => {});
+  // El historial vive en el servidor: se recarga al abrir, al volver a la app y cada cierto tiempo
+  // (más seguido si el asistente sigue escribiendo una respuesta, aunque se haya cortado la conexión).
+  const enviandoRef = useRef(false);
+  const cargar = useCallback(async () => {
+    if (enviandoRef.current) return;
+    try {
+      const h = await historial();
+      if (!enviandoRef.current) setMensajes((prev) => fusionar(prev, h));
+    } catch {
+      /* sin conexión: se reintenta en la próxima vuelta */
+    }
   }, []);
+  const escribiendo = mensajes.some((m) => m.estado === "escribiendo");
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+  useEffect(() => {
+    const alVolver = () => document.visibilityState === "visible" && cargar();
+    document.addEventListener("visibilitychange", alVolver);
+    window.addEventListener("focus", alVolver);
+    const t = setInterval(alVolver, escribiendo ? 2500 : 15000);
+    return () => {
+      document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener("focus", alVolver);
+      clearInterval(t);
+    };
+  }, [cargar, escribiendo]);
+  useEffect(() => {
+    if (escribiendo === false && mensajes.length) avisarCambio(); // terminó una respuesta que siguió sin conexión
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [escribiendo]);
   // Con llaves: en Chrome reciente scrollIntoView devuelve una Promise, y React trataría eso como cleanup.
   useEffect(() => {
     fin.current?.scrollIntoView({ behavior: "smooth" });
@@ -80,6 +122,7 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
     setTexto("");
     setImagenes([]);
     setEnviando(true);
+    enviandoRef.current = true;
     setMensajes((m) => [...m, { role: "user", content: t, fotos }, { role: "assistant", content: "", acciones: [], vivo: true }]);
     const ultimo = (fn) =>
       setMensajes((m) => {
@@ -95,9 +138,16 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
       ultimo((u) => ({ ...u, content: final?.texto || u.content, vivo: false }));
       if (final?.herramientas?.length) avisarCambio(); // el agente registró algo: refrescar pantallas
     } catch (err) {
-      ultimo((u) => ({ ...u, content: u.content || err.message, vivo: false, error: true }));
+      if (err instanceof TypeError) {
+        // Se cortó la conexión (pantalla bloqueada, cambio de red): el servidor sigue respondiendo y lo guarda.
+        ultimo((u) => ({ ...u, estado: "escribiendo", vivo: true }));
+      } else {
+        ultimo((u) => ({ ...u, content: u.content || err.message, vivo: false, error: true }));
+      }
     } finally {
       setEnviando(false);
+      enviandoRef.current = false;
+      cargar();
     }
   }
 
@@ -130,7 +180,8 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
                     {[...new Set(m.acciones)].map((a) => <span key={a} className="chip"><Ico i={m.vivo ? LoaderCircle : Check} size={12} className={m.vivo ? "girar" : ""} />{ACCIONES[a] ?? a}</span>)}
                   </div>
                 )}
-                {m.content ? <div dangerouslySetInnerHTML={md(m.content)} /> : m.vivo && <span className="escribiendo" aria-label="pensando"><i /><i /><i /></span>}
+                {m.content && <div dangerouslySetInnerHTML={md(m.content)} />}
+                {m.vivo && <span className="escribiendo" aria-label="escribiendo"><i /><i /><i /></span>}
               </>
             ) : (
               m.content
