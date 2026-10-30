@@ -11,6 +11,7 @@ import Finanzas from "./pages/Finanzas.jsx";
 import Fitness from "./pages/Fitness.jsx";
 import Inicio from "./pages/Inicio.jsx";
 import Perfil from "./pages/Perfil.jsx";
+import Recetas from "./pages/Recetas.jsx";
 import Memoria from "./pages/Memoria.jsx";
 import Novedades from "./pages/Novedades.jsx";
 import Salud from "./pages/Salud.jsx";
@@ -117,6 +118,7 @@ function Shell({ perfil }) {
     finanzas: <Finanzas ir={ir} />,
     cuidado: <Cuidado ir={ir} />,
     novedades: <Novedades />,
+    recetas: <Recetas />,
     memoria: <Memoria />,
     ajustes: <Ajustes perfil={perfil} query={query} />,
   }[ruta] ?? <Inicio nombre={nombre} ir={ir} />;

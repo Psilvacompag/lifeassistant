@@ -22,7 +22,9 @@ const ACCIONES = {
   editar_cita: "actualizando la cita", borrar_cita: "borrando la cita", editar_producto: "actualizando el producto",
   borrar_producto: "borrando el producto", marcar_paso_rutina: "marcando la rutina", borrar_paso_rutina: "quitando el paso",
   olvidar: "olvidando", marcar_novedad: "marcando la novedad", agregar_tema: "agregando el tema", editar_tema: "ajustando el tema",
-  borrar_tema: "quitando el tema",
+  borrar_tema: "quitando el tema", crear_receta: "escribiendo la receta", ver_recetas: "revisando tu recetario",
+  registrar_receta: "registrando la receta", guia_cocina: "revisando tu air fryer", ver_ideas_comida: "pensando ideas",
+  registrar_gusto: "anotando tu gusto",
 };
 const MAX_FOTOS = 6;
 

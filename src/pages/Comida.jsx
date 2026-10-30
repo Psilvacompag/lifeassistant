@@ -1,4 +1,4 @@
-import { Apple, Camera, Coffee, CookingPot, Croissant, PenLine, Soup, Star, Trash2 } from "lucide-react";
+import { Apple, Camera, ChefHat, Coffee, CookingPot, Croissant, PenLine, Soup, Star, Trash2 } from "lucide-react";
 import { Ico } from "../iconos.jsx";
 import { useEffect, useState } from "react";
 import { api, avisarCambio } from "../api.js";
@@ -95,6 +95,7 @@ export default function Comida({ ir, hojaInicial, onOpcionesUsadas }) {
               <button className="atajo" onClick={() => ir("chat", { camara: true })}><Ico i={Camera} size={20} />Foto</button>
               <button className="atajo" onClick={() => setHoja("favoritas")}><Ico i={Star} size={20} />Favoritas</button>
               <button className="atajo" onClick={() => setHoja("manual")}><Ico i={PenLine} size={20} />Manual</button>
+              <button className="atajo" onClick={() => ir("recetas")}><Ico i={ChefHat} size={20} />Recetas</button>
             </div>
 
             {esHoy && (
