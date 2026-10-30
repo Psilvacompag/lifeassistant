@@ -1,10 +1,12 @@
+import { AlertTriangle, Check, CircleCheck } from "lucide-react";
+import { Ico } from "../iconos.jsx";
 import { useEffect, useState } from "react";
 import { activarPush, api, avisarCambio, desactivarPush, pushSoportado, suscripcionActual } from "../api.js";
 import { salir } from "../firebase.js";
 import { Badge, Campo, Card, Estado, Formulario, fechaHora, limpiar, useApi } from "../ui.jsx";
 
 const MENSAJES_GOOGLE = {
-  ok: ["bueno", "✓ Google conectado. Reviso tu correo cada 2 minutos."],
+  ok: ["bueno", "Google conectado. Reviso tu correo cada 2 minutos."],
   cancelado: ["aviso", "Cancelaste la conexión con Google."],
   vencido: ["aviso", "El enlace venció; intenta conectar de nuevo."],
   error: ["serio", "Google no entregó el permiso. Intenta de nuevo."],
@@ -16,7 +18,7 @@ export default function Ajustes({ perfil: cuenta, query }) {
   return (
     <div className="pagina">
       <header className="pagina-cab"><h1>Ajustes</h1></header>
-      {aviso && <Card className={`aviso-card ${aviso[0]}`}><b>{aviso[1]}</b></Card>}
+      {aviso && <Card className={`aviso-card ${aviso[0]}`}><Ico i={aviso[0] === "bueno" ? CircleCheck : AlertTriangle} size={20} /><b>{aviso[1]}</b></Card>}
 
       <Notificaciones />
       <Google />
@@ -57,7 +59,7 @@ function Notificaciones() {
   const estado = useApi("/push/estado");
   const [activa, setActiva] = useState(null); // este dispositivo
   const [ocupado, setOcupado] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState(null); // {ok, texto}
   const permiso = pushSoportado() ? Notification.permission : "no-soportado";
 
   useEffect(() => {
@@ -67,13 +69,13 @@ function Notificaciones() {
   /** Devuelve true si salió bien (para no encadenar pasos después de un error). */
   async function hacer(fn, ok) {
     setOcupado(true);
-    setMsg("");
+    setMsg(null);
     try {
       await fn();
-      setMsg(ok);
+      setMsg({ ok: true, texto: ok });
       return true;
     } catch (e) {
-      setMsg(`⚠️ ${e.message}`);
+      setMsg({ ok: false, texto: e.message });
       return false;
     } finally {
       setActiva(Boolean(await suscripcionActual().catch(() => null)));
@@ -83,22 +85,23 @@ function Notificaciones() {
   }
 
   return (
-    <Card titulo="Notificaciones" accion={activa ? <Badge tono="bueno">✓ activas aquí</Badge> : <Badge>apagadas aquí</Badge>}>
+    <Card titulo="Notificaciones" accion={activa ? <Badge tono="bueno" icono={Check}>activas aquí</Badge> : <Badge>apagadas aquí</Badge>}>
       <p className="suave chico-txt">
         Remedios (a la hora, a los 15 y a los 45 min, con botón "Tomé"), citas el día antes y 2 h antes, stock bajo,
         rutina de noche, cobros de tarjeta y novedades.
       </p>
       {permiso === "no-soportado" && <p className="error">Este navegador no soporta notificaciones. En Android usa Chrome.</p>}
-      {(permiso === "denied" || (permiso === "default" && msg.startsWith("⚠️"))) && (
+      {(permiso === "denied" || (permiso === "default" && msg && !msg.ok)) && (
         <div className="aviso-card serio card chico-txt">
-          <b>Chrome no dio el permiso.</b> Hazlo a mano: toca el ícono a la izquierda de la dirección (candado o ⚙️) →
-          <b> Permisos</b> → <b>Notificaciones</b> → <b>Permitir</b>. Después recarga y toca "Activar" de nuevo.
+          <Ico i={AlertTriangle} size={18} />
+          <span><b>Chrome no dio el permiso.</b> En Chrome: menú ⋮ → Configuración → Configuración de sitios →
+          <b> Notificaciones</b> → <b>Permitir</b>. Después recarga y toca "Activar" de nuevo.</span>
         </div>
       )}
       <div className="botonera">
         {!activa && permiso !== "no-soportado" && (
           <button disabled={ocupado} onClick={async () => {
-            if (await hacer(activarPush, "✓ Listo. Te mandé una de prueba.")) await api("/push/probar", { method: "POST" }).catch(() => {});
+            if (await hacer(activarPush, "Listo. Te mandé una notificación de prueba.")) await api("/push/probar", { method: "POST" }).catch(() => {});
           }}>
             Activar en este dispositivo
           </button>
@@ -115,7 +118,7 @@ function Notificaciones() {
           </>
         )}
       </div>
-      {msg && <p className="chico-txt">{msg}</p>}
+      {msg && <p className={`chico-txt ${msg.ok ? "" : "error"}`}>{msg.texto}</p>}
       {estado.data && (
         <p className="suave chico-txt">
           {estado.data.dispositivos} dispositivo{estado.data.dispositivos === 1 ? "" : "s"} suscrito{estado.data.dispositivos === 1 ? "" : "s"}
@@ -149,7 +152,7 @@ function Google() {
   }
 
   return (
-    <Card titulo="Google" accion={g.data?.conectado ? <Badge tono={g.data.error ? "serio" : "bueno"}>{g.data.error ? "con error" : "✓ conectado"}</Badge> : null}>
+    <Card titulo="Google" accion={g.data?.conectado ? <Badge tono={g.data.error ? "serio" : "bueno"} icono={g.data.error ? AlertTriangle : Check}>{g.data.error ? "con error" : "conectado"}</Badge> : null}>
       <Estado cargando={g.cargando && !g.data} error={!g.data && g.error}>
         {g.data?.conectado ? (
           <>

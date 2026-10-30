@@ -1,3 +1,5 @@
+import { Plus } from "lucide-react";
+import { Ico } from "../iconos.jsx";
 import { useState } from "react";
 import { api, avisarCambio } from "../api.js";
 import { DosisLista } from "../componentes.jsx";
@@ -28,7 +30,7 @@ export default function Salud() {
               <DosisLista dosis={s.dosis_hoy} vacio="Sin tomas programadas hoy." />
             </Card>
 
-            <Card titulo="Medicamentos" accion={<button className="chico" onClick={() => setHoja("med")}>+ Agregar</button>}>
+            <Card titulo="Medicamentos" accion={<button className="chico secundario" onClick={() => setHoja("med")}><Ico i={Plus} size={16} />Agregar</button>}>
               {!s.meds.length && <p className="suave">Agrega tus remedios con sus horarios, o mándale una foto de la receta al chat.</p>}
               <ul className="lista">
                 {s.meds.map((m) => (
@@ -47,7 +49,7 @@ export default function Salud() {
               </ul>
             </Card>
 
-            <Card titulo="Citas y exámenes" accion={<button className="chico" onClick={() => setHoja("cita")}>+ Agregar</button>}>
+            <Card titulo="Citas y exámenes" accion={<button className="chico secundario" onClick={() => setHoja("cita")}><Ico i={Plus} size={16} />Agregar</button>}>
               {!citasPend.length && <p className="suave">Sin citas pendientes.</p>}
               <ul className="lista">
                 {citasPend.map((c) => (
@@ -55,7 +57,7 @@ export default function Salud() {
                     <span className="fila-txt">
                       <b>{c.titulo}</b> <Badge>{c.tipo}</Badge>
                       <small className="suave">{fechaHora(c.inicio)}{c.lugar && ` · ${c.lugar}`}</small>
-                      {c.preparacion && <small>⚠️ {c.preparacion}</small>}
+                      {c.preparacion && <small className="nota-estado serio">Preparación: {c.preparacion}</small>}
                     </span>
                     <span className="acciones">
                       <button className="chico secundario" onClick={() => estadoCita(c.id, "hecha")}>Hecha</button>

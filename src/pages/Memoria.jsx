@@ -1,3 +1,5 @@
+import { Trash2 } from "lucide-react";
+import { Ico } from "../iconos.jsx";
 import { api, avisarCambio } from "../api.js";
 import { Campo, Card, Estado, Formulario, fechaCorta, useApi } from "../ui.jsx";
 
@@ -35,7 +37,7 @@ export default function Memoria() {
                     <button className="icono chico" aria-label="Olvidar" onClick={async () => {
                       await api(`/memoria/${h.id}`, { method: "DELETE" });
                       avisarCambio();
-                    }}>✕</button>
+                    }}><Ico i={Trash2} size={16} /></button>
                   </li>
                 ))}
               </ul>

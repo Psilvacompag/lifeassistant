@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
+import { AlertCircle, Check, X } from "lucide-react";
 import { api } from "./api.js";
+import { Ico } from "./iconos.jsx";
 
 // ── Datos ────────────────────────────────────────────────────────────────────
 /** Carga `path` y se recarga sola cuando otra pantalla o el chat avisan un cambio. */
@@ -55,14 +57,14 @@ export function Card({ titulo, accion, children, className = "" }) {
 }
 
 export function Estado({ cargando, error, vacio, children }) {
-  if (error) return <p className="error">No pude cargar esto: {error.message}</p>;
+  if (error) return <p className="error" style={{ display: "flex", gap: "0.4rem" }}><Ico i={AlertCircle} /> No pude cargar esto: {error.message}</p>;
   if (cargando) return <p className="suave">Cargando…</p>;
   if (vacio) return <p className="suave">{vacio}</p>;
   return children;
 }
 
-export function Badge({ tono = "neutro", children }) {
-  return <span className={`badge ${tono}`}>{children}</span>;
+export function Badge({ tono = "neutro", icono, children }) {
+  return <span className={`badge ${tono}`}>{icono && <Ico i={icono} size={12} />}{children}</span>;
 }
 
 /** Barra de progreso hacia una meta; pasarse se marca con estado (ícono + texto, no solo color). */
@@ -77,9 +79,9 @@ export function Progreso({ etiqueta, valor, meta, unidad = "", exceso = "malo" }
         <span>
           <b>{num(valor)}</b>
           {meta ? ` / ${num(meta)} ${unidad}` : ` ${unidad}`}
-          {pasado && exceso === "malo" && <span className="nota-estado serio"> ▲ te pasaste {num(valor - meta)}</span>}
+          {pasado && exceso === "malo" && <span className="nota-estado serio"> · {num(valor - meta)} sobre la meta</span>}
           {meta && !pasado && valor < meta && <span className="nota-estado"> · faltan {num(meta - valor)}</span>}
-          {meta && valor >= meta && !(pasado && exceso === "malo") && <span className="nota-estado bueno"> ✓</span>}
+          {meta && valor >= meta && !(pasado && exceso === "malo") && <span className="nota-estado bueno"> · meta cumplida</span>}
         </span>
       </div>
       <div className="progreso-pista" role="progressbar" aria-valuenow={valor} aria-valuemax={meta || undefined}>
@@ -103,7 +105,7 @@ export function Hoja({ titulo, abierta, onCerrar, children }) {
       <div className="hoja" role="dialog" aria-label={titulo} onClick={(e) => e.stopPropagation()}>
         <div className="hoja-cab">
           <h2>{titulo}</h2>
-          <button className="icono" onClick={onCerrar} aria-label="Cerrar">✕</button>
+          <button className="icono" onClick={onCerrar} aria-label="Cerrar"><Ico i={X} size={20} /></button>
         </div>
         {children}
       </div>
@@ -136,7 +138,7 @@ export function Formulario({ onEnviar, boton = "Guardar", reiniciar = false, chi
     <form className="form" onSubmit={enviar}>
       {children}
       {error && <p className="error">{error}</p>}
-      <button disabled={enviando}>{enviando ? "Guardando…" : listo ? "✓ Guardado" : boton}</button>
+      <button disabled={enviando}>{enviando ? "Guardando…" : listo ? <><Ico i={Check} size={16} /> Guardado</> : boton}</button>
     </form>
   );
 }

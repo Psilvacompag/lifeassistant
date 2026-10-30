@@ -1,3 +1,5 @@
+import { ArrowUpRight, Bookmark, Lightbulb, Trash2 } from "lucide-react";
+import { Ico } from "../iconos.jsx";
 import { useState } from "react";
 import { api, avisarCambio } from "../api.js";
 import { Badge, Campo, Card, Estado, Formulario, Hoja, fechaCorta, fechaHora, useApi } from "../ui.jsx";
@@ -67,14 +69,14 @@ export default function Novedades() {
                 </div>
                 <a href={n.url} target="_blank" rel="noopener noreferrer" className="novedad-titulo"
                    onClick={() => !n.leido && marcar(n, { leido: true })}>
-                  {n.titulo} ↗
+                  {n.titulo} <Ico i={ArrowUpRight} size={16} />
                 </a>
                 <p className="chico-txt">{n.resumen}</p>
-                {n.por_que && <p className="chico-txt por-que">💡 {n.por_que}</p>}
+                {n.por_que && <p className="chico-txt por-que"><Ico i={Lightbulb} size={15} /><span>{n.por_que}</span></p>}
                 <div className="novedad-pie">
                   <small className="suave">{n.fuente}{n.publicado && ` · ${fechaCorta(n.publicado)}`}</small>
                   <span className="acciones">
-                    <button className="chico enlace" onClick={() => marcar(n, { guardado: !n.guardado })}>{n.guardado ? "★ guardada" : "☆ guardar"}</button>
+                    <button className="chico enlace" onClick={() => marcar(n, { guardado: !n.guardado })}><Ico i={Bookmark} size={15} />{n.guardado ? "guardada" : "guardar"}</button>
                     {!n.leido && <button className="chico enlace" onClick={() => marcar(n, { leido: true })}>leída</button>}
                   </span>
                 </div>
@@ -97,7 +99,7 @@ export default function Novedades() {
                   if (!confirm(`¿Dejar de seguir "${t.tema}"?`)) return;
                   await api(`/temas/${t.id}`, { method: "DELETE" });
                   avisarCambio();
-                }}>✕</button>
+                }}><Ico i={Trash2} size={16} /></button>
               </span>
             </li>
           ))}

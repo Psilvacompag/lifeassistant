@@ -1,3 +1,5 @@
+import { Plus, Trash2 } from "lucide-react";
+import { Ico } from "../iconos.jsx";
 import { useState } from "react";
 import { api, avisarCambio } from "../api.js";
 import { DosisLista, RutinaLista } from "../componentes.jsx";
@@ -25,7 +27,7 @@ export default function Cuidado({ ir }) {
               <RutinaLista pasos={c.hoy.pm} vacio="Sin pasos PM para hoy." />
               {!c.dosis_hoy.length && (
                 <p className="suave chico-txt">
-                  ¿Minoxidil? Agrégalo en <button className="enlace" onClick={() => ir("salud")}>Salud</button> como tipo
+                  ¿Minoxidil? Agrégalo en <button className="enlace ver" onClick={() => ir("salud")}>Salud</button> como tipo
                   "cuidado" y aparece aquí con sus recordatorios.
                 </p>
               )}
@@ -50,7 +52,7 @@ export default function Cuidado({ ir }) {
               ))}
             </div>
 
-            <Card titulo={`Productos · ${AREAS[area]}`} accion={<button className="chico" onClick={() => setHoja("producto")}>+ Producto</button>}>
+            <Card titulo={`Productos · ${AREAS[area]}`} accion={<button className="chico secundario" onClick={() => setHoja("producto")}><Ico i={Plus} size={16} />Producto</button>}>
               {!c.productos.some((p) => p.area === area) && (
                 <p className="suave">Agrega lo que usas, o mándale al chat una foto del envase y él lo carga con sus ingredientes.</p>
               )}
@@ -67,7 +69,7 @@ export default function Cuidado({ ir }) {
               </ul>
             </Card>
 
-            <Card titulo={`Rutina · ${AREAS[area]}`} accion={<button className="chico" onClick={() => setHoja("paso")}>+ Paso</button>}>
+            <Card titulo={`Rutina · ${AREAS[area]}`} accion={<button className="chico secundario" onClick={() => setHoja("paso")}><Ico i={Plus} size={16} />Paso</button>}>
               {["am", "pm"].map((mom) => {
                 const pasos = c.pasos.filter((p) => p.area === area && p.momento === mom);
                 if (!pasos.length) return null;
@@ -85,7 +87,7 @@ export default function Cuidado({ ir }) {
                           <button className="icono chico" aria-label="Quitar paso" onClick={async () => {
                             await api(`/pasos/${p.id}`, { method: "DELETE" });
                             avisarCambio();
-                          }}>✕</button>
+                          }}><Ico i={Trash2} size={16} /></button>
                         </li>
                       ))}
                     </ul>

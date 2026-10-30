@@ -1,3 +1,5 @@
+import { Camera, ChevronRight, MessageCircle, Plus } from "lucide-react";
+import { Ico } from "../iconos.jsx";
 import { DosisLista, RutinaLista } from "../componentes.jsx";
 import { Badge, Card, Estado, Progreso, clp, fechaCorta, fechaHora, num, useApi } from "../ui.jsx";
 
@@ -19,15 +21,15 @@ export default function Hoy({ nombre, ir }) {
         {h && (
           <>
             <div className="atajos">
-              <button className="atajo" onClick={() => ir("chat", { camara: true })}>📷 Foto de comida</button>
-              <button className="atajo" onClick={() => ir("comida")}>🍽️ Registrar</button>
-              <button className="atajo" onClick={() => ir("chat")}>💬 Preguntar</button>
+              <button className="atajo" onClick={() => ir("chat", { camara: true })}><Ico i={Camera} size={20} />Foto de comida</button>
+              <button className="atajo" onClick={() => ir("comida")}><Ico i={Plus} size={20} />Registrar</button>
+              <button className="atajo" onClick={() => ir("chat")}><Ico i={MessageCircle} size={20} />Preguntar</button>
             </div>
 
-            <Card titulo="Comida de hoy" accion={<button className="enlace" onClick={() => ir("comida")}>ver →</button>}>
+            <Card titulo="Comida de hoy" accion={<button className="enlace ver" onClick={() => ir("comida")}>Ver<Ico i={ChevronRight} size={16} /></button>}>
               {!h.nutricion.metas.kcal && (
                 <p className="suave">
-                  Define tus metas en <button className="enlace" onClick={() => ir("ajustes")}>Ajustes</button> para ver cuánto te falta.
+                  Define tus metas en <button className="enlace ver" onClick={() => ir("ajustes")}>Ajustes</button> para ver cuánto te falta.
                 </p>
               )}
               <Progreso etiqueta="Calorías" valor={h.nutricion.totales.kcal} meta={h.nutricion.metas.kcal} unidad="kcal" />
@@ -42,21 +44,21 @@ export default function Hoy({ nombre, ir }) {
             )}
 
             {(h.rutina.am.length > 0 || h.rutina.pm.length > 0) && (
-              <Card titulo="Rutina de cuidado" accion={<button className="enlace" onClick={() => ir("cuidado")}>ver →</button>}>
+              <Card titulo="Rutina de cuidado" accion={<button className="enlace ver" onClick={() => ir("cuidado")}>Ver<Ico i={ChevronRight} size={16} /></button>}>
                 {h.rutina.am.length > 0 && (<><h3>Mañana</h3><RutinaLista pasos={h.rutina.am} /></>)}
                 {h.rutina.pm.length > 0 && (<><h3>Noche</h3><RutinaLista pasos={h.rutina.pm} /></>)}
               </Card>
             )}
 
             {h.citas.length > 0 && (
-              <Card titulo="Próximas citas" accion={<button className="enlace" onClick={() => ir("salud")}>ver →</button>}>
+              <Card titulo="Próximas citas" accion={<button className="enlace ver" onClick={() => ir("salud")}>Ver<Ico i={ChevronRight} size={16} /></button>}>
                 <ul className="lista">
                   {h.citas.slice(0, 3).map((c) => (
                     <li key={c.id} className="fila">
                       <span className="fila-txt">
                         <b>{c.titulo}</b>
                         <small className="suave">{fechaHora(c.inicio)}{c.lugar && ` · ${c.lugar}`}</small>
-                        {c.preparacion && <small>⚠️ {c.preparacion}</small>}
+                        {c.preparacion && <small className="nota-estado serio">Preparación: {c.preparacion}</small>}
                       </span>
                     </li>
                   ))}
@@ -78,7 +80,7 @@ export default function Hoy({ nombre, ir }) {
             </div>
 
             {nuevas.length > 0 && (
-              <Card titulo="Novedades para ti" accion={<button className="enlace" onClick={() => ir("novedades")}>ver →</button>}>
+              <Card titulo="Novedades para ti" accion={<button className="enlace ver" onClick={() => ir("novedades")}>Ver<Ico i={ChevronRight} size={16} /></button>}>
                 <ul className="lista">
                   {nuevas.map((n) => (
                     <li key={n.id} className="fila clic" onClick={() => ir("novedades")}>

@@ -1,3 +1,5 @@
+import { ArrowUp, Camera, Check, Image as ImageIcon, LoaderCircle, Sparkles, X } from "lucide-react";
+import { Ico } from "../iconos.jsx";
 import { useEffect, useRef, useState } from "react";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
@@ -68,7 +70,7 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
       ultimo((u) => ({ ...u, content: final?.texto || u.content, vivo: false }));
       if (final?.herramientas?.length) avisarCambio(); // el agente registró algo: refrescar pantallas
     } catch (err) {
-      ultimo((u) => ({ ...u, content: u.content || `⚠️ ${err.message}`, vivo: false, error: true }));
+      ultimo((u) => ({ ...u, content: u.content || err.message, vivo: false, error: true }));
     } finally {
       setEnviando(false);
     }
@@ -79,6 +81,7 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
       <section className="mensajes">
         {mensajes.length === 0 && (
           <div className="bienvenida">
+            <span className="bienvenida-ico"><Ico i={Sparkles} size={24} /></span>
             <p className="suave">Cuéntame qué comiste, mándame una foto del plato o de una etiqueta, o pregúntame lo que quieras.</p>
             {["¿Cómo voy hoy?", "Almorcé pollo con arroz", "Ayúdame a armar mi rutina de piel"].map((s) => (
               <button key={s} className="sugerencia" onClick={() => setTexto(s)}>{s}</button>
@@ -88,15 +91,15 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
         {mensajes.map((m, i) => (
           <div key={i} className={`burbuja ${m.role} ${m.error ? "con-error" : ""}`}>
             {m.foto && <img src={m.foto} alt="Foto enviada" className="foto-msg" />}
-            {m.con_imagen && !m.foto && <small className="suave">📷 foto</small>}
+            {m.con_imagen && !m.foto && <small className="suave foto-etiqueta"><Ico i={ImageIcon} size={14} /> foto</small>}
             {m.role === "assistant" ? (
               <>
                 {m.acciones?.length > 0 && (
                   <div className="acciones-agente">
-                    {[...new Set(m.acciones)].map((a) => <span key={a} className="chip">⚙️ {ACCIONES[a] ?? a}</span>)}
+                    {[...new Set(m.acciones)].map((a) => <span key={a} className="chip"><Ico i={m.vivo ? LoaderCircle : Check} size={12} className={m.vivo ? "girar" : ""} />{ACCIONES[a] ?? a}</span>)}
                   </div>
                 )}
-                {m.content ? <div dangerouslySetInnerHTML={md(m.content)} /> : m.vivo && <span className="escribiendo">pensando…</span>}
+                {m.content ? <div dangerouslySetInnerHTML={md(m.content)} /> : m.vivo && <span className="escribiendo" aria-label="pensando"><i /><i /><i /></span>}
               </>
             ) : (
               m.content
@@ -108,12 +111,12 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
       {imagen && (
         <div className="preview">
           <img src={imagen} alt="Foto a enviar" />
-          <button className="icono" onClick={() => setImagen(null)} aria-label="Quitar foto">✕</button>
+          <button className="icono" onClick={() => setImagen(null)} aria-label="Quitar foto"><Ico i={X} size={14} /></button>
         </div>
       )}
       <form className="entrada" onSubmit={enviar}>
         <input ref={archivo} type="file" accept="image/*" capture="environment" hidden onChange={elegirFoto} />
-        <button type="button" className="icono grande" onClick={() => archivo.current?.click()} aria-label="Adjuntar foto">📷</button>
+        <button type="button" className="icono" onClick={() => archivo.current?.click()} aria-label="Adjuntar foto"><Ico i={Camera} size={22} /></button>
         <textarea
           value={texto}
           rows={1}
@@ -123,7 +126,7 @@ export default function Chat({ abrirCamara, onCamaraUsada }) {
             if (e.key === "Enter" && !e.shiftKey && !/Android|iPhone|iPad/.test(navigator.userAgent)) enviar(e);
           }}
         />
-        <button disabled={enviando || (!texto.trim() && !imagen)}>Enviar</button>
+        <button className="enviar" aria-label="Enviar" disabled={enviando || (!texto.trim() && !imagen)}><Ico i={ArrowUp} size={20} /></button>
       </form>
     </div>
   );

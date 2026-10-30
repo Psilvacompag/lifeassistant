@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
+import { ChevronLeft, HeartPulse, House, LayoutGrid, MessageCircle, Utensils } from "lucide-react";
 import { me } from "./api.js";
+import { Ico } from "./iconos.jsx";
 import { alCambiarSesion, entrar, salir } from "./firebase.js";
 import Ajustes from "./pages/Ajustes.jsx";
 import Chat from "./pages/Chat.jsx";
@@ -14,11 +16,11 @@ import Novedades from "./pages/Novedades.jsx";
 import Salud from "./pages/Salud.jsx";
 
 const NAV = [
-  ["hoy", "🏠", "Hoy"],
-  ["comida", "🍽️", "Comida"],
-  ["chat", "💬", "Chat"],
-  ["salud", "💊", "Salud"],
-  ["mas", "☰", "Más"],
+  ["hoy", House, "Hoy"],
+  ["comida", Utensils, "Comida"],
+  ["chat", MessageCircle, "Chat"],
+  ["salud", HeartPulse, "Salud"],
+  ["mas", LayoutGrid, "Más"],
 ];
 const DE_MAS = ["finanzas", "fitness", "cuidado", "novedades", "memoria", "ajustes"];
 // "#/ajustes?google=ok" → ruta "ajustes" + query
@@ -62,8 +64,8 @@ export default function App() {
   if (estado === "fuera")
     return (
       <Pantalla>
-        <p className="suave">Tu asistente personal: fitness, salud, cuidado personal y finanzas.</p>
-        <button onClick={() => entrar().catch((e) => setError(e.message))}>Entrar con Google</button>
+        <p className="suave">Nutrición, entrenamiento, salud, cuidado personal y finanzas, en un solo lugar.</p>
+        <button onClick={() => entrar().catch((e) => setError(e.message))}>Continuar con Google</button>
         {error && <p className="error">{error}</p>}
       </Pantalla>
     );
@@ -119,14 +121,14 @@ function Shell({ perfil }) {
     <div className={`shell ${ruta === "chat" ? "en-chat" : ""}`}>
       <div className="franja" aria-hidden />
       {DE_MAS.includes(ruta) && (
-        <button className="volver enlace" onClick={() => ir("mas")}>‹ Más</button>
+        <button className="volver enlace" onClick={() => ir("mas")}><Ico i={ChevronLeft} size={18} /> Más</button>
       )}
       <main className="contenido">{pagina}</main>
       <nav className="nav" aria-label="Secciones">
         {NAV.map(([id, icono, txt]) => (
           <button key={id} className={activa === id ? "activa" : ""} aria-current={activa === id ? "page" : undefined}
                   onClick={() => ir(id)}>
-            <span aria-hidden>{icono}</span>
+            <Ico i={icono} size={22} />
             <small>{txt}</small>
           </button>
         ))}

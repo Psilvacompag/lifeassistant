@@ -1,3 +1,5 @@
+import { ChevronRight, Minus, Plus, TrendingDown, TrendingUp } from "lucide-react";
+import { Ico } from "../iconos.jsx";
 import { useState } from "react";
 import { api, avisarCambio } from "../api.js";
 import { Campo, Card, Estado, Formulario, Hoja, LineaPeso, fechaCorta, isoLocal, limpiar, num, useApi } from "../ui.jsx";
@@ -23,7 +25,7 @@ export default function Fitness() {
               <div className="tile">
                 <small className="suave">Ritmo (tendencia)</small>
                 <b className="grande">{m.kg_semana === null ? "—" : `${m.kg_semana > 0 ? "+" : ""}${num(m.kg_semana, 2)} kg/sem`}</b>
-                {m.kg_semana !== null && <small className="suave">{m.kg_semana < 0 ? "▼ bajando" : m.kg_semana > 0 ? "▲ subiendo" : "estable"}</small>}
+                {m.kg_semana !== null && <small className="suave" style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}><Ico i={m.kg_semana < 0 ? TrendingDown : m.kg_semana > 0 ? TrendingUp : Minus} size={14} />{m.kg_semana < 0 ? "bajando" : m.kg_semana > 0 ? "subiendo" : "estable"}</small>}
               </div>
               <div className="tile">
                 <small className="suave">Cintura</small>
@@ -32,18 +34,18 @@ export default function Fitness() {
               </div>
             </div>
 
-            <Card titulo="Peso · últimos 90 días" accion={<button className="chico" onClick={() => setHoja("medidas")}>+ Medidas</button>}>
+            <Card titulo="Peso · últimos 90 días" accion={<button className="chico secundario" onClick={() => setHoja("medidas")}><Ico i={Plus} size={16} />Medidas</button>}>
               <LineaPeso puntos={m.tendencia} />
             </Card>
 
-            <Card titulo="Entrenamientos" accion={<button className="chico" onClick={() => setHoja("entreno")}>+ Entreno</button>}>
+            <Card titulo="Entrenamientos" accion={<button className="chico secundario" onClick={() => setHoja("entreno")}><Ico i={Plus} size={16} />Entreno</button>}>
               {!f.entrenos.length && <p className="suave">Registra tus sesiones aquí o cuéntaselas al chat ("hoy hice press banca 4x8 con 80").</p>}
               <ul className="lista">
                 {f.entrenos.map((w) => (
                   <li key={w.id} className="fila bloque">
                     <details>
                       <summary>
-                        <b>{w.nombre}</b> <small className="suave">{fechaCorta(w.fecha)} · {w.series.length} series</small>
+                        <Ico i={ChevronRight} size={16} /><b>{w.nombre}</b> <small className="suave">{fechaCorta(w.fecha)} · {w.series.length} series</small>
                       </summary>
                       <table className="tabla">
                         <thead><tr><th>Ejercicio</th><th>Serie</th><th>Reps</th><th>Kg</th></tr></thead>

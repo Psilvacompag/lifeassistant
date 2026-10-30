@@ -1,3 +1,5 @@
+import { Camera, ChevronLeft, ChevronRight, PenLine, Star, Trash2 } from "lucide-react";
+import { Ico } from "../iconos.jsx";
 import { useState } from "react";
 import { api, avisarCambio } from "../api.js";
 import {
@@ -30,15 +32,15 @@ export default function Comida({ ir }) {
   return (
     <div className="pagina">
       <header className="pagina-cab fila-nav">
-        <button className="icono" onClick={() => mover(-1)} aria-label="Día anterior">‹</button>
+        <button className="icono" onClick={() => mover(-1)} aria-label="Día anterior"><Ico i={ChevronLeft} size={20} /></button>
         <h1>{esHoy ? "Comida de hoy" : fechaCorta(fecha)}</h1>
-        <button className="icono" onClick={() => mover(1)} disabled={esHoy} aria-label="Día siguiente">›</button>
+        <button className="icono" onClick={() => mover(1)} disabled={esHoy} aria-label="Día siguiente"><Ico i={ChevronRight} size={20} /></button>
       </header>
 
       <div className="atajos">
-        <button className="atajo" onClick={() => ir("chat", { camara: true })}>📷 Foto</button>
-        <button className="atajo" onClick={() => setHoja("favoritas")}>⭐ Favoritas</button>
-        <button className="atajo" onClick={() => setHoja("manual")}>✏️ Manual</button>
+        <button className="atajo" onClick={() => ir("chat", { camara: true })}><Ico i={Camera} size={20} />Foto</button>
+        <button className="atajo" onClick={() => setHoja("favoritas")}><Ico i={Star} size={20} />Favoritas</button>
+        <button className="atajo" onClick={() => setHoja("manual")}><Ico i={PenLine} size={20} />Manual</button>
       </div>
 
       <Estado cargando={cargando && !d} error={!d && error}>
@@ -49,7 +51,7 @@ export default function Comida({ ir }) {
               <Progreso etiqueta="Proteína" valor={d.totales.proteina} meta={d.metas.proteina} unidad="g" exceso="bueno" />
               <p className="suave chico-txt">
                 Carbos {num(d.totales.carbos)} g · Grasa {num(d.totales.grasa)} g
-                {!d.metas.kcal && <> · <button className="enlace" onClick={() => ir("ajustes")}>definir metas</button></>}
+                {!d.metas.kcal && <> · <button className="enlace ver" onClick={() => ir("ajustes")}>definir metas</button></>}
               </p>
             </Card>
 
@@ -68,8 +70,8 @@ export default function Comida({ ir }) {
                             {num(i.kcal)} kcal · P {num(i.proteina)} · C {num(i.carbos)} · G {num(i.grasa)}
                           </small>
                         </span>
-                        {i.estimado && <Badge tono="neutro">≈ foto</Badge>}
-                        <button className="icono chico" onClick={() => borrar(i.id)} aria-label="Borrar">✕</button>
+                        {i.estimado && <Badge icono={Camera}>estimado</Badge>}
+                        <button className="icono chico" onClick={() => borrar(i.id)} aria-label="Borrar"><Ico i={Trash2} size={16} /></button>
                       </li>
                     ))}
                   </ul>
@@ -131,7 +133,7 @@ export default function Comida({ ir }) {
                 <button className="icono chico" aria-label="Borrar favorita" onClick={async () => {
                   await api(`/comida/favoritas/${f.id}`, { method: "DELETE" });
                   favs.recargar();
-                }}>✕</button>
+                }}><Ico i={Trash2} size={16} /></button>
               </li>
             ))}
           </ul>

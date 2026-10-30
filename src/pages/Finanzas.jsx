@@ -1,3 +1,5 @@
+import { Check, ChevronLeft, ChevronRight, Mail, Plus } from "lucide-react";
+import { Ico } from "../iconos.jsx";
 import { useState } from "react";
 import { api, avisarCambio } from "../api.js";
 import { Badge, BarrasH, Campo, Card, Estado, Formulario, Hoja, clp, fechaCorta, fechaHora, isoLocal, limpiar, useApi } from "../ui.jsx";
@@ -23,21 +25,24 @@ export default function Finanzas({ ir }) {
   return (
     <div className="pagina">
       <header className="pagina-cab fila-nav">
-        <button className="icono" onClick={() => mover(-1)} aria-label="Mes anterior">‹</button>
+        <button className="icono" onClick={() => mover(-1)} aria-label="Mes anterior"><Ico i={ChevronLeft} size={20} /></button>
         <h1>{MESES[mes.mes - 1]} {mes.anio}</h1>
-        <button className="icono" onClick={() => mover(1)} disabled={esActual} aria-label="Mes siguiente">›</button>
+        <button className="icono" onClick={() => mover(1)} disabled={esActual} aria-label="Mes siguiente"><Ico i={ChevronRight} size={20} /></button>
       </header>
 
       {google.data && !google.data.conectado && (
         <Card className="aviso-card">
-          <b>📧 Cobros automáticos de BCI y Santander</b>
-          <p className="suave chico-txt">Conecta tu Gmail y los cobros de tus tarjetas entran solos, con aviso al celular.</p>
-          <button className="chico" onClick={() => ir("ajustes")}>Conectar Gmail</button>
+          <Ico i={Mail} size={20} />
+          <div>
+            <b>Cobros automáticos de BCI y Santander</b>
+            <p className="suave chico-txt">Conecta tu Gmail y los cobros de tus tarjetas entran solos, con aviso al celular.</p>
+            <button className="chico" onClick={() => ir("ajustes")}>Conectar Gmail</button>
+          </div>
         </Card>
       )}
       {google.data?.conectado && (
-        <p className="suave chico-txt">
-          📧 Gmail {google.data.error ? <span className="error">con error: {google.data.error}</span> : "conectado"} · revisado{" "}
+        <p className="suave chico-txt" style={{ display: "flex", gap: "0.35rem", alignItems: "center", margin: 0 }}>
+          <Ico i={Mail} size={14} /> Gmail {google.data.error ? <span className="error">con error: {google.data.error}</span> : "conectado"} · revisado{" "}
           {google.data.ultimo_sync ? fechaHora(google.data.ultimo_sync) : "aún no"}
         </p>
       )}
@@ -52,7 +57,7 @@ export default function Finanzas({ ir }) {
                 {f.por_confirmar > 0 && <Badge tono="aviso">{f.por_confirmar} por confirmar</Badge>}
               </div>
               <button className="tile accion" onClick={() => setHoja("nuevo")}>
-                <b>+ Gasto</b><small className="suave">efectivo, transferencia…</small>
+                <Ico i={Plus} size={20} /><b>Agregar gasto</b><small className="suave">efectivo o transferencia</small>
               </button>
             </div>
 
@@ -71,7 +76,7 @@ export default function Finanzas({ ir }) {
                             {s.fecha_pago && ` · pagar hasta ${fechaCorta(s.fecha_pago)}`}
                           </small>
                         </span>
-                        {Number(s.monto_facturado) <= 0 ? <Badge tono="bueno">✓ nada que pagar</Badge>
+                        {Number(s.monto_facturado) <= 0 ? <Badge tono="bueno" icono={Check}>nada que pagar</Badge>
                           : vencido ? <Badge>{monto} · vencido</Badge> : <Badge tono="aviso">{monto}</Badge>}
                       </li>
                     );
