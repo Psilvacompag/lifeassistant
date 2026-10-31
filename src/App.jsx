@@ -7,9 +7,11 @@ import Ajustes from "./pages/Ajustes.jsx";
 import Chat from "./pages/Chat.jsx";
 import Comida from "./pages/Comida.jsx";
 import Cuidado from "./pages/Cuidado.jsx";
+import Documentos from "./pages/Documentos.jsx";
 import Finanzas from "./pages/Finanzas.jsx";
 import Fitness from "./pages/Fitness.jsx";
 import Inicio from "./pages/Inicio.jsx";
+import Pedidos from "./pages/Pedidos.jsx";
 import Perfil from "./pages/Perfil.jsx";
 import Recetas from "./pages/Recetas.jsx";
 import Memoria from "./pages/Memoria.jsx";
@@ -119,10 +121,12 @@ function Shell({ perfil }) {
     cuidado: <Cuidado ir={ir} />,
     novedades: <Novedades />,
     recetas: <Recetas />,
+    pedidos: <Pedidos ir={ir} />,
+    documentos: <Documentos ir={ir} />,
     memoria: <Memoria />,
     ajustes: <Ajustes perfil={perfil} query={query} />,
   }[ruta] ?? <Inicio nombre={nombre} ir={ir} />;
-  const activa = EN_NAV.includes(ruta) ? ruta : ["memoria", "ajustes"].includes(ruta) ? "perfil" : "inicio";
+  const activa = EN_NAV.includes(ruta) ? ruta : ["memoria", "ajustes", "documentos"].includes(ruta) ? "perfil" : "inicio";
 
   return (
     <div className={`shell ${ruta === "chat" ? "en-chat" : ""}`}>

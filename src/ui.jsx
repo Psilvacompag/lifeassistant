@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, Check, X } from "lucide-react";
+import { AlertCircle, Check, Sparkles, X } from "lucide-react";
 import { api } from "./api.js";
 import { Ico } from "./iconos.jsx";
 
@@ -39,6 +39,20 @@ export const fechaHora = (iso) =>
 export const isoLocal = (d = new Date()) => {
   const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
   return z.toISOString().slice(0, 10);
+};
+
+/** Monto en su moneda: CLP con formato chileno, dólares como US$, el resto con su código. */
+export const dinero = (n, moneda = "CLP") =>
+  moneda === "CLP" ? clp(n)
+    : `${moneda === "USD" ? "US$" : `${moneda} `}${Number(n ?? 0).toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+/** Días desde hoy hasta una fecha YYYY-MM-DD (negativo si ya pasó). */
+export const diasHasta = (iso) =>
+  Math.round((new Date(`${String(iso).slice(0, 10)}T12:00:00`) - new Date(`${isoLocal()}T12:00:00`)) / 864e5);
+/** "vence hoy", "vence mañana", "vence en 4 días", "venció hace 2 días". */
+export const venceTexto = (iso) => {
+  const d = diasHasta(iso);
+  if (d < 0) return `venció hace ${-d} ${d === -1 ? "día" : "días"}`;
+  return d === 0 ? "vence hoy" : d === 1 ? "vence mañana" : `vence en ${d} días`;
 };
 
 // ── Bloques ──────────────────────────────────────────────────────────────────
@@ -356,5 +370,18 @@ export function MiniBarras({ datos, valor, etiqueta, alto = 44 }) {
               className={valor(d) > 0 ? "" : "vacia"} />
       ))}
     </div>
+  );
+}
+
+/** Estado vacío de una pantalla: explica qué va a aparecer y ofrece pedírselo al chat. */
+export function VacioChat({ icono, texto, pedido, ir }) {
+  return (
+    <Card className="vacio-chat">
+      {icono && <IconoFila icono={icono} tono="neutro" />}
+      <p className="suave chico-txt">{texto}</p>
+      <button className="secundario chico" onClick={() => ir("chat", { texto: pedido })}>
+        <Ico i={Sparkles} size={15} />Pedir al chat
+      </button>
+    </Card>
   );
 }

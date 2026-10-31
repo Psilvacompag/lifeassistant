@@ -659,3 +659,88 @@ button.enlace.ver { font-weight: 500; font-size: 0.86rem; gap: 0.1rem; }
 .crispi-chip { background: var(--aviso-suave); color: var(--aviso); }
 .paso-tiempo { background: var(--superficie-2); color: var(--texto-2); }
 .check-mini li b { font-weight: 650; }
+
+/* ── Vacío con pedido al chat ── */
+.vacio-chat { display: flex; flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+.vacio-chat p { margin: 0; line-height: 1.45; }
+.vacio-linea { display: flex; flex-direction: column; align-items: flex-start; gap: 0.55rem; }
+.vacio-linea p { margin: 0; }
+.girado { transform: rotate(180deg); }
+.chevron { transition: transform 0.15s; }
+
+/* ── Pedidos ── */
+.lista-pedidos, .lista-docs { display: flex; flex-direction: column; gap: 0.6rem; }
+.pedido { display: flex; flex-direction: column; gap: 0.75rem; }
+.pedido-cab { display: flex; align-items: flex-start; gap: 0.7rem; }
+.pedido-cab .fila-txt b { line-height: 1.3; }
+.pedido-cab .monto { padding-top: 0.1rem; }
+.pedido-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.75rem; font-size: 0.84rem; color: var(--texto-2); }
+.pedido-meta:empty { display: none; }
+.pedido-meta b { font-weight: 600; color: var(--texto); }
+.pedido-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; padding-top: 0.65rem; border-top: 1px solid var(--borde); }
+.pedido-acciones .empujar { margin-left: auto; }
+.pedido-acciones button.enlace { padding-left: 0; padding-right: 0; }
+.enlace-btn {
+  display: inline-flex; align-items: center; gap: 0.15rem; color: var(--acento-tinta); font-weight: 600; font-size: 0.86rem;
+  text-decoration: none;
+}
+.enlace-btn:hover { text-decoration: underline; }
+.pedido-detalle { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+.pedido-detalle button.enlace, .doc-detalle button.enlace { padding-left: 0; font-weight: 500; }
+
+/* Progreso de 4 pasos: punto + rótulo, unidos por una línea */
+.pasos-pedido { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); }
+.pasos-pedido li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; text-align: center; min-width: 0; }
+.pasos-pedido li + li::before {
+  content: ""; position: absolute; top: 7px; right: calc(50% + 11px); left: calc(-50% + 11px); height: 2px;
+  border-radius: 2px; background: var(--borde);
+}
+.pasos-pedido li.hecho + li::before { background: var(--acento); }
+.pasos-punto {
+  width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--borde-fuerte); background: var(--superficie);
+  display: grid; place-items: center; color: var(--acento-texto);
+}
+.pasos-pedido li.hecho .pasos-punto { background: var(--acento); border-color: var(--acento); }
+.pasos-pedido li.actual .pasos-punto { border-color: var(--acento); box-shadow: 0 0 0 4px var(--acento-suave); background: var(--superficie); }
+.pasos-pedido li.actual .pasos-punto::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--acento); }
+.pasos-pedido small { font-size: 0.72rem; color: var(--suave); line-height: 1.2; }
+.pasos-pedido li.hecho small { color: var(--texto-2); }
+.pasos-pedido li.actual small { color: var(--texto); font-weight: 650; }
+
+/* Historial de eventos del pedido */
+.eventos { list-style: none; margin: 0; padding: 0; width: 100%; }
+.eventos li { position: relative; display: flex; gap: 0.7rem; padding: 0 0 0.75rem; }
+.eventos li:last-child { padding-bottom: 0.1rem; }
+.eventos li::before { content: ""; position: absolute; left: 4px; top: 12px; bottom: -2px; width: 2px; background: var(--borde); }
+.eventos li:last-child::before { display: none; }
+.eventos-punto { width: 10px; height: 10px; border-radius: 50%; background: var(--borde-fuerte); margin-top: 6px; flex: none; position: relative; }
+.eventos li.actual .eventos-punto { background: var(--acento); }
+.eventos .fila-txt b { font-size: 0.88rem; }
+.eventos .fila-txt small { color: var(--texto-2); }
+.eventos .fila-txt small.suave { color: var(--suave); font-size: 0.76rem; }
+
+/* ── Cuentas por pagar ── */
+.fila.cuenta { flex-wrap: nowrap; align-items: flex-start; }
+.fila.cuenta .fila-txt { flex: 1 1 auto; }
+.cuenta-lado { display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; flex: none; }
+.cuenta-lado .monto { font-size: 0.95rem; }
+.sube { display: inline-flex; align-items: center; gap: 0.25rem; margin-top: 0.1rem; }
+details.pagadas { margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px solid var(--borde); }
+details.pagadas .fila-txt b { font-weight: 500; }
+
+/* ── Del correo ── */
+.doc { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.8rem 0.9rem; }
+.doc-cab {
+  all: unset; display: flex; align-items: flex-start; gap: 0.7rem; cursor: pointer; width: 100%; box-sizing: border-box;
+}
+.doc-cab:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; border-radius: 8px; }
+.doc-cab .fila-txt b { line-height: 1.3; }
+.doc-cab .chevron { color: var(--suave); margin-top: 0.55rem; }
+.doc-resumen { margin: 0; font-size: 0.88rem; color: var(--texto-2); line-height: 1.45; }
+.doc-resumen.corto { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.doc-detalle { display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+.datos-doc { margin: 0; width: 100%; background: var(--superficie-2); border-radius: var(--radio-chico); padding: 0.25rem 0.75rem; }
+.datos-doc div { display: flex; justify-content: space-between; gap: 1rem; padding: 0.42rem 0; border-bottom: 1px solid var(--borde); font-size: 0.86rem; }
+.datos-doc div:last-child { border-bottom: 0; }
+.datos-doc dt { color: var(--suave); flex: none; max-width: 45%; }
+.datos-doc dd { margin: 0; text-align: right; font-weight: 550; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }

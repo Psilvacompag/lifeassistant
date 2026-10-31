@@ -1,12 +1,16 @@
 import { useState } from "react";
 import {
-  AlertTriangle, Calendar, Camera, Check, ChevronRight, Dumbbell, Moon, Newspaper, Pill, Sparkles, Star, Sun, TrendingDown,
-  TrendingUp, Utensils, Wallet,
+  AlertTriangle, Calendar, Camera, Check, ChevronRight, Dumbbell, Moon, Newspaper, Package, Pill, Receipt, Sparkles, Star, Sun,
+  TrendingDown, TrendingUp, Utensils, Wallet,
 } from "lucide-react";
 import { api, avisarCambio } from "../api.js";
 import { comidaDeAhora } from "../componentes.jsx";
 import { Ico } from "../iconos.jsx";
-import { Anillo, Avatar, Estado, FechaBloque, IconoFila, MiniBarras, Resumen, clp, fechaCorta, fechaHora, num, useApi } from "../ui.jsx";
+import {
+  Anillo, Avatar, Badge, Estado, FechaBloque, IconoFila, MiniBarras, Resumen, clp, diasHasta, dinero, fechaCorta, fechaHora, num, useApi,
+  venceTexto,
+} from "../ui.jsx";
+import { ESTADO_PEDIDO } from "./Pedidos.jsx";
 
 const COMIDAS = ["desayuno", "almuerzo", "once", "cena", "snack"];
 
@@ -63,7 +67,9 @@ export default function Inicio({ nombre, ir }) {
               <WidgetComida h={h} ir={ir} />
               <WidgetEntreno h={h} ir={ir} />
               <WidgetFinanzas h={h} ir={ir} />
+              {h.cuentas_proximas?.length > 0 && <WidgetCuentas cuentas={h.cuentas_proximas} ir={ir} />}
               {h.citas.length > 0 && <WidgetCitas h={h} ir={ir} />}
+              {h.pedidos_activos?.length > 0 && <WidgetPedidos pedidos={h.pedidos_activos} ir={ir} />}
               <WidgetNovedades h={h} ir={ir} />
             </div>
           </>
@@ -246,6 +252,55 @@ function WidgetFinanzas({ h, ir }) {
       {pago && (
         <small className="nota-estado serio">Pagar {pago.moneda === "CLP" ? clp(pago.monto_facturado) : `US$${Number(pago.monto_facturado).toFixed(0)}`} · {fechaCorta(pago.fecha_pago)}</small>
       )}
+    </Widget>
+  );
+}
+
+function WidgetCuentas({ cuentas, ir }) {
+  const urgente = cuentas.some((c) => c.vencimiento && diasHasta(c.vencimiento) <= 1);
+  const total = cuentas.filter((c) => c.moneda === "CLP").reduce((s, c) => s + Number(c.monto ?? 0), 0);
+  return (
+    <Widget icono={Receipt} tono={urgente ? "aviso" : "acento"} titulo="Cuentas por pagar" ancho onAbrir={() => ir("finanzas")}
+            contador={total > 0 ? clp(total) : null}>
+      <ul className="lista">
+        {cuentas.map((c) => (
+          <li key={c.id} className="fila clic" onClick={() => ir("finanzas")}>
+            <span className="fila-txt">
+              <b style={{ fontSize: "0.9rem" }}>{c.emisor}</b>
+              {c.vencimiento && (
+                <small className={diasHasta(c.vencimiento) <= 1 ? "nota-estado serio" : "suave"}>{venceTexto(c.vencimiento)}</small>
+              )}
+            </span>
+            {c.monto !== null && <b className="monto">{dinero(c.monto, c.moneda)}</b>}
+          </li>
+        ))}
+      </ul>
+    </Widget>
+  );
+}
+
+function WidgetPedidos({ pedidos, ir }) {
+  const atrasados = pedidos.some((p) => p.atrasado);
+  return (
+    <Widget icono={Package} tono={atrasados ? "aviso" : "acento"} titulo="Pedidos en camino" ancho onAbrir={() => ir("pedidos")}
+            contador={`${pedidos.length}`}>
+      <ul className="lista">
+        {pedidos.slice(0, 3).map((p) => (
+          <li key={p.id} className="fila clic" onClick={() => ir("pedidos")}>
+            <span className="fila-txt">
+              <b style={{ fontSize: "0.9rem" }}>{p.descripcion}</b>
+              <small className="suave">
+                {p.tienda}
+                {p.atrasado ? <span className="nota-estado serio"> · atrasado</span>
+                  : p.entrega_estimada && ` · llega ${fechaCorta(p.entrega_estimada)}`}
+              </small>
+            </span>
+            <Badge tono={p.estado === "problema" ? "serio" : p.atrasado ? "aviso" : p.estado === "en_reparto" ? "acento" : "neutro"}>
+              {ESTADO_PEDIDO[p.estado] ?? p.estado}
+            </Badge>
+          </li>
+        ))}
+      </ul>
     </Widget>
   );
 }

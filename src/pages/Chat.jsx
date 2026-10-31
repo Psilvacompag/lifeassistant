@@ -24,7 +24,10 @@ const ACCIONES = {
   olvidar: "olvidando", marcar_novedad: "marcando la novedad", agregar_tema: "agregando el tema", editar_tema: "ajustando el tema",
   borrar_tema: "quitando el tema", crear_receta: "escribiendo la receta", ver_recetas: "revisando tu recetario",
   registrar_receta: "registrando la receta", guia_cocina: "revisando tu air fryer", ver_ideas_comida: "pensando ideas",
-  registrar_gusto: "anotando tu gusto",
+  registrar_gusto: "anotando tu gusto", ver_pedidos: "revisando tus pedidos", editar_pedido: "actualizando el pedido",
+  ver_cuentas: "revisando tus cuentas", marcar_cuenta: "marcando la cuenta", ver_documentos: "revisando tus documentos",
+  buscar_correo: "buscando en tu correo", leer_correo: "leyendo el correo", seguir_remitente: "ajustando qué correos reviso",
+  buscar_precios: "comparando precios", abrir_pagina: "abriendo la página",
 };
 const MAX_FOTOS = 6;
 
