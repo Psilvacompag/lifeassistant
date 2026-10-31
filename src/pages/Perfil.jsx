@@ -1,4 +1,4 @@
-import { Brain, ChefHat, ChevronRight, Inbox, Newspaper, Package, Settings, Sparkles, Utensils, Wallet } from "lucide-react";
+import { Brain, ChefHat, ChevronRight, Inbox, Newspaper, Package, Settings, ShoppingBag, Sparkles, Utensils, Wallet } from "lucide-react";
 import { Ico } from "../iconos.jsx";
 import { Avatar, Seccion, num, useApi } from "../ui.jsx";
 
@@ -7,6 +7,7 @@ const SECCIONES = [
   ["recetas", ChefHat, "Recetas", "Tu recetario, a la medida de tu cocina"],
   ["cuidado", Sparkles, "Cuidado personal", "Productos y rutinas de cara, pelo y barba"],
   ["finanzas", Wallet, "Finanzas", "Gastos, tarjetas, cuentas y categorías"],
+  ["compras", ShoppingBag, "Compras", "Tu lista de lo que tienes que comprar"],
   ["pedidos", Package, "Pedidos", "Compras en camino y entregadas"],
   ["documentos", Inbox, "Del correo", "Resultados, reembolsos, reservas y boletas"],
   ["novedades", Newspaper, "Novedades", "Lo nuevo de tus temas, con fuentes"],

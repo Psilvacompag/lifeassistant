@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  AlertTriangle, Calendar, Camera, Check, ChevronRight, Dumbbell, Moon, Newspaper, Package, Pill, Receipt, Sparkles, Star, Sun,
+  AlertTriangle, Calendar, Camera, Check, ChevronRight, Dumbbell, Moon, Newspaper, Package, Pill, Receipt, ShoppingBag, Sparkles, Star, Sun,
   TrendingDown, TrendingUp, Utensils, Wallet,
 } from "lucide-react";
 import { api, avisarCambio } from "../api.js";
@@ -70,6 +70,7 @@ export default function Inicio({ nombre, ir }) {
               {h.cuentas_proximas?.length > 0 && <WidgetCuentas cuentas={h.cuentas_proximas} ir={ir} />}
               {h.citas.length > 0 && <WidgetCitas h={h} ir={ir} />}
               {h.pedidos_activos?.length > 0 && <WidgetPedidos pedidos={h.pedidos_activos} ir={ir} />}
+              {h.compras_total > 0 && <WidgetCompras compras={h.compras} total={h.compras_total} ir={ir} />}
               <WidgetNovedades h={h} ir={ir} />
             </div>
           </>
@@ -317,6 +318,35 @@ function WidgetPedidos({ pedidos, ir }) {
           </li>
         ))}
       </ul>
+      {error && <small className="error">{error}</small>}
+    </Widget>
+  );
+}
+
+function WidgetCompras({ compras, total, ir }) {
+  const [error, setError] = useState("");
+  async function comprado(x) {
+    setError("");
+    try {
+      await api(`/compras/${x.id}`, { method: "PATCH", body: { comprado: true } });
+      avisarCambio();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  return (
+    <Widget icono={ShoppingBag} titulo="Por comprar" ancho onAbrir={() => ir("compras")} contador={`${total}`}>
+      <ul className="check-mini">
+        {compras.map((x) => (
+          <li key={x.id} onClick={() => comprado(x)} aria-label={`Marcar como comprado: ${x.nombre}`}>
+            <span className="caja" aria-hidden />
+            <span>{x.nombre}{x.cantidad && <span className="suave"> · {x.cantidad}</span>}</span>
+          </li>
+        ))}
+      </ul>
+      {total > compras.length && (
+        <button className="enlace chico-txt widget-pie" onClick={() => ir("compras")}>Ver las {total}</button>
+      )}
       {error && <small className="error">{error}</small>}
     </Widget>
   );

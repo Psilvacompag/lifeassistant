@@ -6,6 +6,7 @@ import { alCambiarSesion, entrar, salir } from "./firebase.js";
 import Ajustes from "./pages/Ajustes.jsx";
 import Chat from "./pages/Chat.jsx";
 import Comida from "./pages/Comida.jsx";
+import Compras from "./pages/Compras.jsx";
 import Cuidado from "./pages/Cuidado.jsx";
 import Documentos from "./pages/Documentos.jsx";
 import Finanzas from "./pages/Finanzas.jsx";
@@ -122,6 +123,7 @@ function Shell({ perfil }) {
     novedades: <Novedades />,
     recetas: <Recetas />,
     pedidos: <Pedidos ir={ir} />,
+    compras: <Compras ir={ir} />,
     documentos: <Documentos ir={ir} />,
     memoria: <Memoria />,
     ajustes: <Ajustes perfil={perfil} query={query} />,

@@ -744,3 +744,20 @@ details.pagadas .fila-txt b { font-weight: 500; }
 .datos-doc div:last-child { border-bottom: 0; }
 .datos-doc dt { color: var(--suave); flex: none; max-width: 45%; }
 .datos-doc dd { margin: 0; text-align: right; font-weight: 550; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+
+/* ── Compras ── */
+.agregar-compra { display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; }
+.agregar-compra input, .agregar-compra select {
+  font: inherit; font-size: 1rem; color: var(--texto); background: var(--superficie); min-width: 0;
+  border: 1px solid var(--borde-fuerte); border-radius: var(--radio-chico); padding: 0.6rem 0.75rem;
+}
+.agregar-compra input { grid-column: 1 / -1; }
+.agregar-compra input:focus, .agregar-compra select:focus { border-color: var(--acento); outline: none; box-shadow: 0 0 0 3px var(--acento-suave); }
+.agregar-compra button { display: inline-flex; align-items: center; gap: 0.3rem; }
+.fila.compra { flex-wrap: nowrap; align-items: flex-start; }
+.compra-caja { all: unset; cursor: pointer; padding: 0.1rem; border-radius: 8px; }
+.compra-caja:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.fila.compra.hecha .fila-txt b { text-decoration: line-through; text-decoration-color: var(--borde-fuerte); }
+.compra-para { color: var(--acento-tinta); }
+.enlace-precio { color: var(--texto-2); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 0.15rem; }
+.enlace-precio:hover { color: var(--acento-tinta); }

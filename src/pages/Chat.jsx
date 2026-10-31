@@ -27,7 +27,8 @@ const ACCIONES = {
   registrar_gusto: "anotando tu gusto", ver_pedidos: "revisando tus pedidos", editar_pedido: "actualizando el pedido",
   ver_cuentas: "revisando tus cuentas", marcar_cuenta: "marcando la cuenta", ver_documentos: "revisando tus documentos",
   buscar_correo: "buscando en tu correo", leer_correo: "leyendo el correo", seguir_remitente: "ajustando qué correos reviso",
-  buscar_precios: "comparando precios", abrir_pagina: "abriendo la página",
+  ver_compras: "revisando tu lista de compras", agregar_compras: "anotando en tu lista de compras",
+  editar_compra: "actualizando tu lista de compras", buscar_precios: "comparando precios", abrir_pagina: "abriendo la página",
 };
 const MAX_FOTOS = 6;
 
