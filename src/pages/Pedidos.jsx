@@ -15,6 +15,10 @@ const PASO = { comprado: 0, preparando: 0, en_camino: 1, en_reparto: 2, entregad
 export default function Pedidos({ ir }) {
   const { data: d, error, cargando } = useApi("/pedidos");
   const vacio = d && !d.activos.length && !d.recientes.length;
+  async function noLlego(p) {
+    await api(`/pedidos/${p.id}`, { method: "PATCH", body: { estado: "en_camino" } });
+    avisarCambio();
+  }
 
   return (
     <div className="pagina">
@@ -55,6 +59,11 @@ export default function Pedidos({ ir }) {
                           </small>
                         </span>
                         {p.monto !== null && <span className="monto suave chico-txt">{dinero(p.monto, p.moneda)}</span>}
+                        {p.estado === "entregado" && (
+                          <button className="enlace chico-txt" onClick={() => noLlego(p)} aria-label={`No ha llegado: ${p.descripcion}`}>
+                            No llegó
+                          </button>
+                        )}
                       </li>
                     ))}
                   </ul>

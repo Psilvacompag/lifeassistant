@@ -7,7 +7,7 @@ import { api, avisarCambio } from "../api.js";
 import { comidaDeAhora } from "../componentes.jsx";
 import { Ico } from "../iconos.jsx";
 import {
-  Anillo, Avatar, Badge, Estado, FechaBloque, IconoFila, MiniBarras, Resumen, clp, diasHasta, dinero, fechaCorta, fechaHora, num, useApi,
+  Anillo, Avatar, Estado, FechaBloque, IconoFila, MiniBarras, Resumen, clp, diasHasta, dinero, fechaCorta, fechaHora, num, useApi,
   venceTexto,
 } from "../ui.jsx";
 import { ESTADO_PEDIDO } from "./Pedidos.jsx";
@@ -281,6 +281,21 @@ function WidgetCuentas({ cuentas, ir }) {
 
 function WidgetPedidos({ pedidos, ir }) {
   const atrasados = pedidos.some((p) => p.atrasado);
+  const [ocupado, setOcupado] = useState(null);
+  const [error, setError] = useState("");
+  async function llego(e, p) {
+    e.stopPropagation();
+    setOcupado(p.id);
+    setError("");
+    try {
+      await api(`/pedidos/${p.id}`, { method: "PATCH", body: { estado: "entregado" } });
+      avisarCambio();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setOcupado(null);
+    }
+  }
   return (
     <Widget icono={Package} tono={atrasados ? "aviso" : "acento"} titulo="Pedidos en camino" ancho onAbrir={() => ir("pedidos")}
             contador={`${pedidos.length}`}>
@@ -290,17 +305,19 @@ function WidgetPedidos({ pedidos, ir }) {
             <span className="fila-txt">
               <b style={{ fontSize: "0.9rem" }}>{p.descripcion}</b>
               <small className="suave">
-                {p.tienda}
+                {p.tienda} · {ESTADO_PEDIDO[p.estado] ?? p.estado}
                 {p.atrasado ? <span className="nota-estado serio"> · atrasado</span>
                   : p.entrega_estimada && ` · llega ${fechaCorta(p.entrega_estimada)}`}
               </small>
             </span>
-            <Badge tono={p.estado === "problema" ? "serio" : p.atrasado ? "aviso" : p.estado === "en_reparto" ? "acento" : "neutro"}>
-              {ESTADO_PEDIDO[p.estado] ?? p.estado}
-            </Badge>
+            <button className="secundario chico" disabled={ocupado === p.id} onClick={(e) => llego(e, p)}
+                    aria-label={`Marcar como entregado: ${p.descripcion}`}>
+              <Ico i={Check} size={15} />Llegó
+            </button>
           </li>
         ))}
       </ul>
+      {error && <small className="error">{error}</small>}
     </Widget>
   );
 }
