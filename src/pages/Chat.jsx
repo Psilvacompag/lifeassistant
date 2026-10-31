@@ -1,9 +1,9 @@
 import { ArrowUp, Camera, Check, Image as ImageIcon, ImagePlus, LoaderCircle, Plus, Sparkles, X } from "lucide-react";
 import { Ico } from "../iconos.jsx";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
-import { avisarCambio, chat, historial, reducirImagen } from "../api.js";
+import { avisarCambio, chat, mensajesChat, reducirImagen } from "../api.js";
 
 const md = (t) => ({ __html: DOMPurify.sanitize(marked.parse(t ?? "", { breaks: true })) });
 
@@ -42,6 +42,22 @@ function fusionar(previos, delServidor) {
   });
 }
 
+/** Día local del mensaje (los recién enviados aún no traen fecha: son de hoy). */
+const diaDe = (m) => (m.at ? new Date(m.at) : new Date()).toDateString();
+
+function etiquetaDia(clave) {
+  const d = new Date(clave);
+  const hoy = new Date();
+  const ayer = new Date(hoy);
+  ayer.setDate(hoy.getDate() - 1);
+  if (clave === hoy.toDateString()) return "Hoy";
+  if (clave === ayer.toDateString()) return "Ayer";
+  const t = d.toLocaleDateString("es-CL", {
+    weekday: "long", day: "numeric", month: "long", ...(d.getFullYear() !== hoy.getFullYear() && { year: "numeric" }),
+  });
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 export default function Chat({ abrirCamara, textoInicial, onOpcionesUsadas }) {
   const [mensajes, setMensajes] = useState([]);
   const [texto, setTexto] = useState("");
@@ -63,16 +79,50 @@ export default function Chat({ abrirCamara, textoInicial, onOpcionesUsadas }) {
 
   // El historial vive en el servidor: se recarga al abrir, al volver a la app y cada cierto tiempo
   // (más seguido si el asistente sigue escribiendo una respuesta, aunque se haya cortado la conexión).
+  // La recarga trae solo la página más reciente; lo que ya se cargó hacia atrás se conserva.
   const enviandoRef = useRef(false);
+  const [hayMas, setHayMas] = useState(false);
+  const [cargandoViejos, setCargandoViejos] = useState(false);
+  const [cortes, setCortes] = useState(() => new Set()); // ids de mensajes tras los que empezó una sesión nueva
+  const viejosCargados = useRef(false);
+  const lista = useRef(null);
+  const restaurar = useRef(null); // posición del scroll a mantener al agregar mensajes arriba
+  const sumarCortes = (h) => setCortes((c) => new Set([...c, ...h.cortes.map((x) => x.hasta_msg)]));
   const cargar = useCallback(async () => {
     if (enviandoRef.current) return;
     try {
-      const h = await historial();
-      if (!enviandoRef.current) setMensajes((prev) => fusionar(prev, h));
+      const h = await mensajesChat();
+      if (enviandoRef.current) return;
+      setMensajes((prev) => {
+        const nuevos = fusionar(prev, h.mensajes);
+        const desde = nuevos.find((m) => m.id)?.id;
+        return [...(desde ? prev.filter((m) => m.id && m.id < desde) : []), ...nuevos];
+      });
+      if (!viejosCargados.current) setHayMas(h.hay_mas);
+      sumarCortes(h);
     } catch {
       /* sin conexión: se reintenta en la próxima vuelta */
     }
   }, []);
+
+  async function cargarAnteriores() {
+    const primero = mensajes.find((m) => m.id)?.id;
+    if (!primero || cargandoViejos) return;
+    setCargandoViejos(true);
+    try {
+      const h = await mensajesChat({ antes: primero });
+      viejosCargados.current = true;
+      const el = lista.current;
+      restaurar.current = { alto: el.scrollHeight, arriba: el.scrollTop };
+      setMensajes((prev) => [...fusionar([], h.mensajes).filter((m) => !prev.some((p) => p.id === m.id)), ...prev]);
+      setHayMas(h.hay_mas);
+      sumarCortes(h);
+    } catch {
+      /* sin conexión: el botón sigue ahí para reintentar */
+    } finally {
+      setCargandoViejos(false);
+    }
+  }
   const escribiendo = mensajes.some((m) => m.estado === "escribiendo");
   useEffect(() => {
     cargar();
@@ -92,10 +142,24 @@ export default function Chat({ abrirCamara, textoInicial, onOpcionesUsadas }) {
     if (escribiendo === false && mensajes.length) avisarCambio(); // terminó una respuesta que siguió sin conexión
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [escribiendo]);
+  // Al cargar mensajes anteriores, el scroll se queda donde estaba (no salta al final ni al principio).
+  useLayoutEffect(() => {
+    const r = restaurar.current;
+    if (!r || !lista.current) return;
+    lista.current.scrollTop = r.arriba + (lista.current.scrollHeight - r.alto);
+    restaurar.current = null;
+  }, [mensajes]);
+  // Baja al final solo cuando cambia el último mensaje (uno nuevo o el que se está escribiendo), no en cada recarga.
+  const ultimo = mensajes.at(-1);
+  const claveUltimo = ultimo ? `${ultimo.id ?? "local"}:${ultimo.content?.length ?? 0}:${ultimo.acciones?.length ?? 0}` : "";
+  // Al abrir baja de golpe (con muchos mensajes el desplazamiento suave no alcanza a llegar); después, suave.
+  const yaAbajo = useRef(false);
   // Con llaves: en Chrome reciente scrollIntoView devuelve una Promise, y React trataría eso como cleanup.
   useEffect(() => {
-    fin.current?.scrollIntoView({ behavior: "smooth" });
-  }, [mensajes]);
+    if (!claveUltimo) return;
+    fin.current?.scrollIntoView({ behavior: yaAbajo.current ? "smooth" : "auto" });
+    yaAbajo.current = true;
+  }, [claveUltimo]);
   useEffect(() => {
     if (abrirCamara) camara.current?.click();
     if (textoInicial) {
@@ -157,7 +221,12 @@ export default function Chat({ abrirCamara, textoInicial, onOpcionesUsadas }) {
 
   return (
     <div className="chat">
-      <section className="mensajes">
+      <section className="mensajes" ref={lista}>
+        {hayMas && (
+          <button type="button" className="ver-anteriores" onClick={cargarAnteriores} disabled={cargandoViejos}>
+            {cargandoViejos ? <><Ico i={LoaderCircle} size={14} className="girar" /> Cargando</> : "Ver mensajes anteriores"}
+          </button>
+        )}
         {mensajes.length === 0 && (
           <div className="bienvenida">
             <span className="bienvenida-ico"><Ico i={Sparkles} size={24} /></span>
@@ -167,8 +236,17 @@ export default function Chat({ abrirCamara, textoInicial, onOpcionesUsadas }) {
             ))}
           </div>
         )}
-        {mensajes.map((m, i) => (
-          <div key={i} className={`burbuja ${m.role} ${m.error ? "con-error" : ""}`}>
+        {mensajes.map((m, i) => {
+          const dia = diaDe(m);
+          const siguiente = mensajes[i + 1];
+          // La sesión nueva se marca solo si sigue el mismo día (el cambio de día ya lo marca su separador).
+          const corte = m.id && cortes.has(m.id) && siguiente && diaDe(siguiente) === dia;
+          return (
+          <Fragment key={m.id ?? `local-${i}`}>
+          {(i === 0 || diaDe(mensajes[i - 1]) !== dia) && (
+            <div className="separador-dia"><span>{etiquetaDia(dia)}</span></div>
+          )}
+          <div className={`burbuja ${m.role} ${m.error ? "con-error" : ""}`}>
             {m.fotos?.length > 0 && (
               <div className={`fotos-msg n${Math.min(m.fotos.length, 3)}`}>
                 {m.fotos.map((f, j) => <img key={j} src={f} alt={`Foto ${j + 1}`} />)}
@@ -191,7 +269,10 @@ export default function Chat({ abrirCamara, textoInicial, onOpcionesUsadas }) {
               m.content
             )}
           </div>
-        ))}
+          {corte && <div className="corte-sesion"><span>Conversación renovada · recuerda lo importante</span></div>}
+          </Fragment>
+          );
+        })}
         <div ref={fin} />
       </section>
       {(imagenes.length > 0 || procesando) && (

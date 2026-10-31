@@ -36,6 +36,10 @@ export const avisarCambio = () => window.dispatchEvent(new Event("la:cambio"));
 export const me = () => api("/me");
 export const historial = () => api("/historial");
 
+/** Historial paginado: los n mensajes anteriores a `antes` (o los últimos), si hay más atrás y los cortes de sesión. */
+export const mensajesChat = ({ antes, n = 40 } = {}) =>
+  api(`/chat/mensajes?n=${n}${antes ? `&antes=${antes}` : ""}`);
+
 /**
  * Envía un mensaje (con foto opcional) y va entregando el texto a medida que llega (SSE sobre POST).
  * onEvento recibe {tipo: "delta"|"herramienta", ...}. Devuelve el evento "fin".

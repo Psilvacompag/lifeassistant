@@ -338,6 +338,18 @@ details[open] summary .ico { transform: rotate(90deg); }
 .bienvenida-ico { width: 52px; height: 52px; border-radius: 16px; background: var(--acento-suave); color: var(--acento-tinta); display: grid; place-items: center; margin-bottom: 0.3rem; }
 .bienvenida p { max-width: 20rem; margin: 0 0 0.4rem; }
 .sugerencia { background: var(--superficie); color: var(--texto); border: 1px solid var(--borde-fuerte); font-weight: 500; font-size: 0.9rem; }
+.ver-anteriores {
+  align-self: center; display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; font-weight: 500;
+  background: var(--superficie); color: var(--texto-2); border: 1px solid var(--borde-fuerte); border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+}
+.separador-dia { align-self: center; margin: 0.4rem 0 0.1rem; }
+.separador-dia span {
+  font-size: 0.74rem; font-weight: 600; color: var(--texto-2); background: var(--superficie-2);
+  border-radius: 999px; padding: 0.2rem 0.7rem;
+}
+.corte-sesion { display: flex; align-items: center; gap: 0.6rem; color: var(--suave); font-size: 0.72rem; margin: 0.2rem 0; }
+.corte-sesion::before, .corte-sesion::after { content: ""; flex: 1; border-top: 1px solid var(--borde); }
 .burbuja { max-width: 86%; padding: 0.6rem 0.9rem; border-radius: 18px; overflow-wrap: anywhere; font-size: 0.95rem; }
 .burbuja.user {
   align-self: flex-end; background: var(--acento); color: var(--acento-texto);
