@@ -22,6 +22,7 @@ export default function Ajustes({ perfil: cuenta, query }) {
 
       <Notificaciones />
       <Google />
+      <OrdenCorreo />
 
       <Estado cargando={cargando && !p} error={!p && error}>
         {p && (
@@ -164,19 +165,94 @@ function Google() {
               </span>
             </p>
             {g.data.error && <p className="error chico-txt">{g.data.error}</p>}
+            {g.data.falta_ordenar && (
+              <div className="aviso-card aviso" style={{ margin: "0.5rem 0" }}>
+                <div>
+                  <b className="chico-txt">Falta un permiso para ordenar tu correo</b>
+                  <p className="suave chico-txt" style={{ margin: "0.2rem 0 0.5rem" }}>
+                    Reconecta para que el chat pueda mandar basura a la papelera, archivar y etiquetar. Nunca borra para
+                    siempre y todo se puede deshacer.
+                  </p>
+                  <button className="chico" disabled={ocupado} onClick={conectar}>Reconectar Gmail</button>
+                </div>
+              </div>
+            )}
             <button className="secundario" onClick={desconectar}>Desconectar</button>
           </>
         ) : (
           <>
             <p className="suave chico-txt">
-              Leo solo los correos de BCI, Santander y clínicas: los cobros de tus tarjetas entran solos a Finanzas y las horas
-              médicas a Salud. El resto de tu correo no se procesa ni se guarda.
+              Leo los correos de bancos, clínicas, tiendas y cuentas: los cobros entran solos a Finanzas, las horas médicas a
+              Salud y los pedidos a Pedidos. Desde el chat puedes además ordenar tu correo (papelera, archivar, etiquetar).
             </p>
             <button disabled={ocupado} onClick={conectar}>Conectar Gmail</button>
           </>
         )}
         {msg && <p className="chico-txt">{msg}</p>}
       </Estado>
+    </Card>
+  );
+}
+
+const ACCION_CORREO = { papelera: "a la papelera", archivar: "archivar", etiquetar: "etiquetar", leido: "marcar leído" };
+
+/** Reglas de correo (se crean desde el chat) y últimas acciones, con deshacer. */
+function OrdenCorreo() {
+  const o = useApi("/correo/orden");
+  const [msg, setMsg] = useState("");
+  if (!o.data || (!o.data.reglas.length && !o.data.acciones.length)) return null;
+  async function hacer(fn) {
+    setMsg("");
+    try {
+      await fn();
+      o.recargar();
+    } catch (e) {
+      setMsg(e.message);
+    }
+  }
+  return (
+    <Card titulo="Orden del correo">
+      {o.data.reglas.length > 0 && (
+        <>
+          <small className="suave">Reglas (se aplican solas a lo que llega)</small>
+          <ul className="lista">
+            {o.data.reglas.map((r) => (
+              <li key={r.id} className="fila">
+                <span className="fila-txt">
+                  <b>{r.descripcion || r.consulta}</b>
+                  <small className="suave">
+                    {ACCION_CORREO[r.accion]}{r.etiqueta && ` "${r.etiqueta}"`} · {r.aplicadas} correos{!r.activa && " · pausada"}
+                  </small>
+                </span>
+                <button className="enlace chico-txt" onClick={() => hacer(() => api(`/correo/reglas/${r.id}`, { method: "PATCH", body: { activa: !r.activa } }))}>
+                  {r.activa ? "Pausar" : "Activar"}
+                </button>
+                <button className="enlace chico-txt" onClick={() => confirm("¿Borrar la regla? Lo ya ordenado queda como está.")
+                  && hacer(() => api(`/correo/reglas/${r.id}`, { method: "DELETE" }))}>Borrar</button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {o.data.acciones.length > 0 && (
+        <>
+          <small className="suave">Últimas acciones</small>
+          <ul className="lista">
+            {o.data.acciones.map((a) => (
+              <li key={a.id} className="fila">
+                <span className="fila-txt">
+                  <b>{a.correos} {a.correos === 1 ? "correo" : "correos"} {ACCION_CORREO[a.accion]}{a.etiqueta && ` "${a.etiqueta}"`}</b>
+                  <small className="suave">{fechaHora(a.created_at)}{a.regla_id && " · por regla"} · {a.consulta}</small>
+                </span>
+                {a.deshecha ? <Badge>deshecho</Badge> : (
+                  <button className="enlace chico-txt" onClick={() => hacer(() => api(`/correo/acciones/${a.id}/deshacer`, { method: "POST" }))}>Deshacer</button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {msg && <p className="error chico-txt">{msg}</p>}
     </Card>
   );
 }
