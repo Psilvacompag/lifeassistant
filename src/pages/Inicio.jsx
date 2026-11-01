@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  AlertTriangle, Calendar, Camera, Check, ChevronRight, Dumbbell, Moon, Newspaper, Package, Pill, Receipt, ShoppingBag, Sparkles, Star, Sun,
+  AlertTriangle, Bell, Calendar, Camera, Check, ChevronRight, Dumbbell, Moon, Newspaper, Package, Pill, Receipt, ShoppingBag, Sparkles, Star, Sun,
   TrendingDown, TrendingUp, Utensils, Wallet,
 } from "lucide-react";
 import { api, avisarCambio } from "../api.js";
@@ -68,6 +68,7 @@ export default function Inicio({ nombre, ir }) {
               <WidgetEntreno h={h} ir={ir} />
               <WidgetFinanzas h={h} ir={ir} />
               {h.cuentas_proximas?.length > 0 && <WidgetCuentas cuentas={h.cuentas_proximas} ir={ir} />}
+              {h.recordatorios?.length > 0 && <WidgetRecordatorios recordatorios={h.recordatorios} ir={ir} />}
               {h.citas.length > 0 && <WidgetCitas h={h} ir={ir} />}
               {h.pedidos_activos?.length > 0 && <WidgetPedidos pedidos={h.pedidos_activos} ir={ir} />}
               {h.compras_total > 0 && <WidgetCompras compras={h.compras} total={h.compras_total} ir={ir} />}
@@ -347,6 +348,36 @@ function WidgetCompras({ compras, total, ir }) {
       {total > compras.length && (
         <button className="enlace chico-txt widget-pie" onClick={() => ir("compras")}>Ver las {total}</button>
       )}
+      {error && <small className="error">{error}</small>}
+    </Widget>
+  );
+}
+
+function WidgetRecordatorios({ recordatorios, ir }) {
+  const [error, setError] = useState("");
+  async function listo(x) {
+    setError("");
+    try {
+      await api(`/recordatorios/${x.id}`, { method: "PATCH", body: { estado: "hecho" } });
+      avisarCambio();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  const ahora = Date.now();
+  return (
+    <Widget icono={Bell} tono="aviso" titulo="Recordatorios" ancho onAbrir={() => ir("chat")} contador={`${recordatorios.length}`}>
+      <ul className="check-mini">
+        {recordatorios.map((x) => (
+          <li key={x.id} onClick={() => listo(x)} aria-label={`Marcar como listo: ${x.titulo}`}>
+            <span className="caja" aria-hidden />
+            <span>
+              {x.titulo}
+              <span className={new Date(x.cuando).getTime() < ahora ? "nota-estado serio" : "suave"}> · {fechaHora(x.cuando)}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
       {error && <small className="error">{error}</small>}
     </Widget>
   );
