@@ -200,6 +200,7 @@ button.secundario.peligro { border-color: color-mix(in srgb, var(--critico) 35%,
 .fila:last-child { border-bottom: 0; padding-bottom: 0.15rem; }
 .lista .fila:first-child { padding-top: 0.15rem; }
 .fila.clic, .fila.check { cursor: pointer; }
+.fila.activa { background: var(--acento-suave); margin: 0 -0.6rem; padding-left: 0.6rem; padding-right: 0.6rem; border-radius: 10px; }
 .fila.hecha .fila-txt b { color: var(--suave); font-weight: 500; }
 .fila.bloque { display: block; }
 .fila-txt { flex: 1 1 9rem; display: flex; flex-direction: column; min-width: 0; overflow-wrap: break-word; gap: 1px; }

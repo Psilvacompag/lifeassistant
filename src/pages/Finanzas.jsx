@@ -18,13 +18,17 @@ export default function Finanzas({ ir }) {
   const hoy = new Date();
   const [mes, setMes] = useState({ anio: hoy.getFullYear(), mes: hoy.getMonth() + 1 });
   const { data: f, error, cargando } = useApi(`/finanzas?anio=${mes.anio}&mes=${mes.mes}`);
-  const [hoja, setHoja] = useState(null); // "nuevo" | {gasto}
+  const [hoja, setHoja] = useState(null); // "nuevo" | "estado" | {gasto}
+  const [filtro, setFiltro] = useState(null); // clave de tarjeta (4 últimos dígitos) para filtrar movimientos
   const esActual = mes.anio === hoy.getFullYear() && mes.mes === hoy.getMonth() + 1;
 
   function mover(d) {
     const m = new Date(mes.anio, mes.mes - 1 + d, 1);
     setMes({ anio: m.getFullYear(), mes: m.getMonth() + 1 });
+    setFiltro(null);
   }
+  const tarjetaFiltro = f?.tarjetas?.find((t) => t.clave === filtro);
+  const visibles = (f?.gastos ?? []).filter((g) => !tarjetaFiltro || claveTarjeta(g.tarjeta) === filtro);
 
   // Gasto por día del mes (CLP) para el mini gráfico, y gastos agrupados por fecha para la lista.
   const diasMes = new Date(mes.anio, mes.mes, 0).getDate();
@@ -32,6 +36,8 @@ export default function Finanzas({ ir }) {
   const grupos = [];
   for (const g of f?.gastos ?? []) {
     if (g.moneda === "CLP") porDia[Number(String(g.fecha).slice(8, 10)) - 1].monto += Number(g.monto);
+  }
+  for (const g of visibles) {
     const ultimo = grupos.at(-1);
     if (ultimo && ultimo.fecha === g.fecha) ultimo.items.push(g);
     else grupos.push({ fecha: g.fecha, items: [g] });
@@ -83,31 +89,7 @@ export default function Finanzas({ ir }) {
 
             {esActual && <CuentasPorPagar ir={ir} />}
 
-            {f.estados?.length > 0 && (
-              <Seccion titulo="Tarjetas">
-                <Card>
-                  <ul className="lista">
-                    {f.estados.map((s) => {
-                      const monto = s.moneda === "CLP" ? clp(s.monto_facturado) : `US$${Number(s.monto_facturado).toFixed(2)}`;
-                      const vencido = s.fecha_pago && s.fecha_pago < isoLocal();
-                      return (
-                        <li key={s.id} className="fila">
-                          <IconoFila icono={CreditCard} tono={Number(s.monto_facturado) > 0 && !vencido ? "aviso" : "neutro"} />
-                          <span className="fila-txt">
-                            <b>{s.tarjeta} <small className="suave">· {s.moneda === "CLP" ? "nacional" : "internacional"}</small></b>
-                            <small className="suave">
-                              {s.movimientos} cargos{s.fecha_pago && ` · pagar hasta ${fechaCorta(s.fecha_pago)}`}
-                            </small>
-                          </span>
-                          {Number(s.monto_facturado) <= 0 ? <Badge tono="bueno" icono={Check}>nada que pagar</Badge>
-                            : <b className="monto">{monto}</b>}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </Card>
-              </Seccion>
-            )}
+            <Tarjetas tarjetas={f.tarjetas ?? []} filtro={filtro} setFiltro={setFiltro} subir={() => setHoja("estado")} />
 
             {f.por_categoria.length > 0 && (
               <Seccion titulo="Por categoría">
@@ -117,8 +99,9 @@ export default function Finanzas({ ir }) {
               </Seccion>
             )}
 
-            <Seccion titulo={`Movimientos (${f.gastos.length})`}>
-              {!f.gastos.length && <Card><p className="suave" style={{ margin: 0 }}>Sin gastos este mes.</p></Card>}
+            <Seccion titulo={tarjetaFiltro ? `Movimientos · ${tarjetaFiltro.tarjeta} (${visibles.length})` : `Movimientos (${f.gastos.length})`}
+              accion={tarjetaFiltro && <button className="enlace chico-txt" onClick={() => setFiltro(null)}>Ver todos</button>}>
+              {!visibles.length && <Card><p className="suave" style={{ margin: 0 }}>Sin gastos este mes.</p></Card>}
               {grupos.length > 0 && (
                 <Card>
                   {grupos.map((gr) => (
@@ -152,6 +135,34 @@ export default function Finanzas({ ir }) {
           </>
         )}
       </Estado>
+
+      <Hoja titulo="Subir estado de cuenta" abierta={hoja === "estado"} onCerrar={() => setHoja(null)}>
+        <p className="suave chico-txt" style={{ marginTop: 0 }}>
+          Descarga el PDF desde la web o la app de tu banco y súbelo acá. Se lee solo: total a pagar, fecha de pago y
+          cargos. Las compras que ya entraron por aviso no se duplican. Tarda unos 30 segundos.
+        </p>
+        <Formulario boton="Subir y leer" onEnviar={async (v) => {
+          if (!v.archivo?.size) throw new Error("elige el PDF");
+          if (v.archivo.size > 10_000_000) throw new Error("el PDF pesa más de 10 MB");
+          const pdf = await new Promise((ok, mal) => {
+            const r = new FileReader();
+            r.onload = () => ok(r.result);
+            r.onerror = () => mal(new Error("no pude leer el archivo"));
+            r.readAsDataURL(v.archivo);
+          });
+          await api("/estados-cuenta", { method: "POST", body: { banco: v.banco, pdf, ...(v.clave ? { clave: v.clave } : {}) } });
+          avisarCambio();
+          setHoja(null);
+        }}>
+          <Campo label="Banco" name="banco" type="select" defaultValue="BCI">
+            <option value="BCI">BCI</option>
+            <option value="Santander">Santander</option>
+          </Campo>
+          <Campo label="PDF del estado de cuenta" name="archivo" type="file" accept="application/pdf,.pdf" required />
+          <Campo label="Clave del PDF" name="clave" type="password" autoComplete="off"
+            ayuda="Solo si el PDF pide clave (suele ser tu RUT sin dígito verificador). Queda guardada cifrada para los próximos." />
+        </Formulario>
+      </Hoja>
 
       <Hoja titulo="Nuevo gasto" abierta={hoja === "nuevo"} onCerrar={() => setHoja(null)}>
         <Formulario onEnviar={async (v) => {
@@ -283,6 +294,64 @@ function CuentasPorPagar({ ir }) {
             </ul>
           </details>
         )}
+      </Card>
+    </Seccion>
+  );
+}
+
+/** Clave de una tarjeta: sus 4 últimos dígitos (así "BCI ****7527" y "BCI Visa ****7527" son la misma). */
+function claveTarjeta(nombre) {
+  const m = /(\d{4})\D*$/.exec(nombre || "");
+  return m ? m[1] : (nombre || "").toLowerCase();
+}
+
+const fmtUsd = (v) => `US$${Number(v).toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** Todas las tarjetas: lo gastado en el mes (cuadra con Movimientos), el último estado de cuenta y hasta cuándo hay datos. */
+function Tarjetas({ tarjetas, filtro, setFiltro, subir }) {
+  if (!tarjetas.length) return null;
+  const hoy = isoLocal();
+  return (
+    <Seccion titulo="Tarjetas" accion={<button className="enlace chico-txt" onClick={subir}>Subir estado de cuenta</button>}>
+      <Card>
+        <ul className="lista">
+          {tarjetas.map((t) => {
+            const porPagar = t.estados.filter((e) => Number(e.monto_facturado) > 0 && e.fecha_pago && e.fecha_pago >= hoy);
+            const soloEstado = t.fuentes.length > 0 && t.fuentes.every((x) => x === "estado_cuenta");
+            return (
+              <li key={t.clave} className={`fila clic ${filtro === t.clave ? "activa" : ""}`}
+                onClick={() => setFiltro(filtro === t.clave ? null : t.clave)} aria-label={`Ver movimientos de ${t.tarjeta}`}>
+                <IconoFila icono={CreditCard} tono={porPagar.length ? "aviso" : "neutro"} />
+                <span className="fila-txt">
+                  <b>{t.tarjeta}</b>
+                  <small className="suave">
+                    {t.movimientos} {t.movimientos === 1 ? "cargo" : "cargos"} este mes
+                    {t.mes_usd > 0 && ` · ${fmtUsd(t.mes_usd)}`}
+                  </small>
+                  {t.estados.length > 0 ? t.estados.map((e) => (
+                    <small key={e.id} className={porPagar.includes(e) ? "nota-estado" : "suave"}>
+                      {e.moneda === "CLP" ? "Nacional" : "Internacional"}:{" "}
+                      {Number(e.monto_facturado) > 0
+                        ? `${e.moneda === "CLP" ? clp(e.monto_facturado) : fmtUsd(e.monto_facturado)}${e.fecha_pago ? ` · pagar hasta ${fechaCorta(e.fecha_pago)}` : ""}`
+                        : "nada que pagar"}
+                      {e.periodo_hasta && ` · estado al ${fechaCorta(e.periodo_hasta)}`}
+                    </small>
+                  )) : (
+                    <small className="suave">
+                      Sin estado de cuenta.{" "}
+                      <button className="enlace chico-txt" onClick={(ev) => { ev.stopPropagation(); subir(); }}>Súbelo</button>
+                      {" "}para ver cuánto pagar.
+                    </small>
+                  )}
+                  {soloEstado && t.datos_hasta && (
+                    <small className="nota-estado serio">Compras hasta el {fechaCorta(t.datos_hasta)}: las nuevas llegan con el próximo estado</small>
+                  )}
+                </span>
+                <b className="monto">{clp(t.mes_clp)}</b>
+              </li>
+            );
+          })}
+        </ul>
       </Card>
     </Seccion>
   );
