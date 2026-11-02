@@ -3,7 +3,7 @@ import { Ico } from "../iconos.jsx";
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
-import { avisarCambio, chat, mensajesChat, reducirImagen } from "../api.js";
+import { avisarCambio, chat, fotoChat, mensajesChat, reducirImagen } from "../api.js";
 
 const md = (t) => ({ __html: DOMPurify.sanitize(marked.parse(t ?? "", { breaks: true })) });
 
@@ -44,6 +44,30 @@ function fusionar(previos, delServidor) {
     }
     return { ...m, fotos, vivo: m.estado === "escribiendo" };
   });
+}
+
+/** Fotos de un mensaje guardadas en el servidor (las que mandaste desde otro equipo o en otra visita). */
+function FotosServidor({ id, n }) {
+  const [urls, setUrls] = useState(() => Array(n).fill(null));
+  const [falla, setFalla] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    Array.from({ length: n }, (_, j) =>
+      fotoChat(id, j + 1)
+        .then((u) => vivo && setUrls((ya) => ya.map((x, k) => (k === j ? u : x))))
+        .catch(() => vivo && setFalla(true)));
+    return () => { vivo = false; };
+  }, [id, n]);
+  if (falla && urls.every((u) => !u)) {
+    return <small className="foto-etiqueta"><Ico i={ImageIcon} size={14} /> {n > 1 ? `${n} fotos` : "foto"}</small>;
+  }
+  return (
+    <div className={`fotos-msg n${Math.min(n, 3)}`}>
+      {urls.map((u, j) => (u
+        ? <a key={j} href={u} target="_blank" rel="noreferrer"><img src={u} alt={`Foto ${j + 1}`} /></a>
+        : <div key={j} className="foto-cargando"><Ico i={LoaderCircle} size={18} className="girar" /></div>))}
+    </div>
+  );
 }
 
 /** Día local del mensaje (los recién enviados aún no traen fecha: son de hoy). */
@@ -256,9 +280,7 @@ export default function Chat({ abrirCamara, textoInicial, onOpcionesUsadas }) {
                 {m.fotos.map((f, j) => <img key={j} src={f} alt={`Foto ${j + 1}`} />)}
               </div>
             )}
-            {m.con_imagen && !m.fotos && (
-              <small className="foto-etiqueta"><Ico i={ImageIcon} size={14} /> {m.n_fotos > 1 ? `${m.n_fotos} fotos` : "foto"}</small>
-            )}
+            {m.con_imagen && !m.fotos && m.id && <FotosServidor id={m.id} n={Math.max(m.n_fotos, 1)} />}
             {m.role === "assistant" ? (
               <>
                 {m.acciones?.length > 0 && (

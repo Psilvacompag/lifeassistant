@@ -78,6 +78,23 @@ export async function chat({ texto, imagenes = [] }, onEvento) {
   return fin;
 }
 
+/** Foto que mandaste en el chat (guardada en el servidor), como URL local. Se pide una sola vez por sesión de la web. */
+const fotosCache = new Map();
+export function fotoChat(msgId, i) {
+  const clave = `${msgId}/${i}`;
+  if (!fotosCache.has(clave)) {
+    const p = (async () => {
+      const { Authorization } = await headers();
+      const res = await fetch(`${API_URL}/api/chat/foto/${clave}`, { headers: { Authorization } });
+      if (!res.ok) throw await fallo(res);
+      return URL.createObjectURL(await res.blob());
+    })();
+    p.catch(() => fotosCache.delete(clave)); // si falló, se reintenta la próxima vez
+    fotosCache.set(clave, p);
+  }
+  return fotosCache.get(clave);
+}
+
 /** Reduce una foto a máx. 1600 px en JPEG: menos datos por la red y menos tokens para el modelo. */
 export function reducirImagen(file, max = 1600) {
   return new Promise((resolve, reject) => {
