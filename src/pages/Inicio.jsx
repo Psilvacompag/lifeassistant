@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
-import { api, avisarCambio, fotoChat } from "../api.js";
+import { api, avisarCambio, fotoChat, fotoFondo } from "../api.js";
 import { marcarPaso, responderSugerencia, useLoDeSiempre } from "../componentes.jsx";
 import { Ico } from "../iconos.jsx";
 import { Avatar, Estado, clp, diasHasta, dinero, fechaCorta, num, useApi, useMarcas, venceTexto } from "../ui.jsx";
@@ -84,6 +84,45 @@ function Miniatura({ msgId }) {
   return <span className="mini-foto">{url && <img src={url} alt="" />}</span>;
 }
 
+const MES = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString("es-CL", { month: "short", year: "numeric" }).replace(".", "");
+
+/**
+ * Portada: una foto del viaje detrás del saludo, distinta cada día (recorre todas antes de repetir).
+ * Primero aparece la miniatura y luego la grande; un zoom lento al abrir. Tocar la foto pasa a la siguiente.
+ */
+function Portada({ fecha, children }) {
+  const { data: fotos } = useApi("/fondos");
+  const [salto, setSalto] = useState(0);
+  const [urls, setUrls] = useState({});
+  const n = fotos?.length ?? 0;
+  const dia = fecha ? Math.floor(new Date(`${String(fecha).slice(0, 10)}T12:00:00`).getTime() / 864e5) : 0;
+  const f = n ? fotos[(((dia + salto) % n) + n) % n] : null;
+  useEffect(() => {
+    if (!f) return;
+    let vivo = true;
+    for (const t of ["-mini", ""]) {
+      fotoFondo(`${f.id}${t}.webp`).then((u) => vivo && setUrls((x) => ({ ...x, [`${f.id}${t}`]: u }))).catch(() => {});
+    }
+    // La siguiente queda lista para cuando la toques.
+    const sig = fotos[(((dia + salto + 1) % n) + n) % n];
+    if (sig) fotoFondo(`${sig.id}.webp`).catch(() => {});
+    return () => { vivo = false; };
+  }, [f, fotos, dia, salto, n]);
+  if (!f) return <div className="portada sin-foto">{children}</div>;
+  const grande = urls[f.id];
+  const mini = urls[`${f.id}-mini`];
+  return (
+    <div className="portada" style={{ "--tono": f.color }}>
+      <button className="portada-foto" onClick={() => setSalto((s) => s + 1)} aria-label={`Foto del viaje: ${f.lugar ?? "Japón"}. Tocar para ver otra`}>
+        {mini && <img key={`${f.id}m`} src={mini} alt="" className="mini" style={{ objectPosition: f.vertical ? "50% 38%" : "50% 50%" }} />}
+        {grande && <img key={f.id} src={grande} alt="" className="grande" style={{ objectPosition: f.vertical ? "50% 38%" : "50% 50%" }} />}
+      </button>
+      <span className="portada-pie" aria-hidden><i>旅</i>{[f.lugar, f.fecha && MES(f.fecha)].filter(Boolean).join(" · ")}</span>
+      <div className="portada-texto">{children}</div>
+    </div>
+  );
+}
+
 export default function Inicio({ nombre, ir }) {
   const { data: h, error, cargando } = useApi("/hoy");
   const saludo = (() => {
@@ -94,13 +133,15 @@ export default function Inicio({ nombre, ir }) {
   return (
     <div className="pagina inicio">
       <FiltroTinta />
-      <header className="cab-inicio">
-        <div className="pagina-cab">
-          <p className="fecha-hoy">{h ? fechaCorta(h.fecha) : " "}</p>
-          <h1>{saludo}, {nombre}</h1>
-        </div>
-        <button className="icono" onClick={() => ir("perfil")} aria-label="Perfil"><Avatar texto={nombre} /></button>
-      </header>
+      <Portada fecha={h?.fecha}>
+        <header className="cab-inicio">
+          <div className="pagina-cab">
+            <p className="fecha-hoy">{h ? fechaCorta(h.fecha) : " "}</p>
+            <h1>{saludo}, {nombre}</h1>
+          </div>
+          <button className="icono" onClick={() => ir("perfil")} aria-label="Perfil"><Avatar texto={nombre} /></button>
+        </header>
+      </Portada>
 
       <Estado cargando={cargando && !h} error={!h && error}>
         {h && <Dia h={h} ir={ir} />}

@@ -95,6 +95,22 @@ export function fotoChat(msgId, i) {
   return fotosCache.get(clave);
 }
 
+/** Foto del viaje para el fondo (privada: se pide con la sesión). `nombre` = "4725.webp" o "4725-mini.webp". */
+export function fotoFondo(nombre) {
+  const clave = `fondo/${nombre}`;
+  if (!fotosCache.has(clave)) {
+    const p = (async () => {
+      const { Authorization } = await headers();
+      const res = await fetch(`${API_URL}/api/fondos/${nombre}`, { headers: { Authorization } });
+      if (!res.ok) throw await fallo(res);
+      return URL.createObjectURL(await res.blob());
+    })();
+    p.catch(() => fotosCache.delete(clave));
+    fotosCache.set(clave, p);
+  }
+  return fotosCache.get(clave);
+}
+
 /** Reduce una foto a máx. 1600 px en JPEG: menos datos por la red y menos tokens para el modelo. */
 export function reducirImagen(file, max = 1600) {
   return new Promise((resolve, reject) => {
