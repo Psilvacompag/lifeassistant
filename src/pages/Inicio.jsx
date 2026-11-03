@@ -15,9 +15,15 @@ import { ESTADO_PEDIDO } from "./Pedidos.jsx";
 const COMIDAS = ["desayuno", "almuerzo", "once", "cena", "snack"];
 
 /** Tarjeta del panel: cabecera tocable (lleva al detalle) y cuerpo interactivo. */
+// Kanji de fondo de cada tarjeta (decorativo, como el sello de un templo).
+const KANJI = {
+  Skincare: "肌", Medicación: "薬", "Comidas de hoy": "食", Entreno: "力", Finanzas: "金", "Cuentas por pagar": "払",
+  "Pedidos en camino": "荷", "Por comprar": "買", Recordatorios: "鐘", "Próxima cita": "約", "Novedades para ti": "新",
+};
+
 function Widget({ icono, tono = "acento", titulo, contador, onAbrir, ancho, children }) {
   return (
-    <section className={`widget ${ancho ? "ancho" : ""}`}>
+    <section className={`widget ${ancho ? "ancho" : ""}`} data-kanji={KANJI[titulo]}>
       <button className="widget-cab" onClick={onAbrir} aria-label={`Abrir ${titulo}`}>
         <IconoFila icono={icono} tono={tono} />
         <span className="titulo">{titulo}</span>
