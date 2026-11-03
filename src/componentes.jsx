@@ -255,7 +255,8 @@ const MOMENTO = { desayuno: "Desayuno", almuerzo: "Almuerzo", once: "Once", cena
  * Lo de siempre: las comidas fijas del día (el batido de la mañana). Cada una se marca con un toque y se desmarca
  * igual; si algo se repite varios días, propone dejarlo como de siempre. `datos` = respuesta de /comida/siempre.
  */
-export function LoDeSiempre({ datos, fecha, compacto, onElegir }) {
+/** Lógica de "lo de siempre": marcar (registra) y desmarcar (borra el registro), con respuesta inmediata. */
+export function useLoDeSiempre(datos, fecha) {
   const [logs, setLogs] = useState({}); // favorita → registro creado desde aquí (para deshacer antes de recargar)
   const hab = datos?.habituales ?? [];
   const logDe = (h) => h.log_id ?? logs[h.id];
@@ -271,19 +272,30 @@ export function LoDeSiempre({ datos, fecha, compacto, onElegir }) {
     }
   }, [fecha, hab, logs]);
   const { valor, marcar, enCurso, error } = useMarcas(enviar);
-  const tocar = (h) => !enCurso(h.id) && marcar(h.id, !valor(h.id, !!logDe(h)));
-  const pendientes = hab.filter((h) => !valor(h.id, !!logDe(h)));
+  const hecha = (h) => valor(h.id, !!logDe(h));
+  const tocar = (h) => !enCurso(h.id) && marcar(h.id, !hecha(h));
+  return { hab, hecha, tocar, marcar, error };
+}
+
+export async function responderSugerencia(clave, aceptar) {
+  await api("/comida/siempre/sugerencia", { method: "POST", body: { clave, aceptar } });
+  avisarCambio();
+}
+
+export function LoDeSiempre({ datos, fecha, compacto, onElegir }) {
+  const { hab, hecha, tocar, marcar, error } = useLoDeSiempre(datos, fecha);
+  const pendientes = hab.filter((h) => !hecha(h));
 
   return (
     <>
       {hab.length > 0 && (
         <div className={`siempre ${compacto ? "compacto" : ""}`}>
           {hab.map((h) => {
-            const hecha = valor(h.id, !!logDe(h));
+            const ok = hecha(h);
             return (
-              <button key={h.id} className={`siempre-item ${hecha ? "hecha" : ""}`} onClick={() => tocar(h)} aria-pressed={hecha}
-                      aria-label={`${hecha ? "Desmarcar" : "Marcar"} ${h.nombre}`}>
-                <Caja marcada={hecha} />
+              <button key={h.id} className={`siempre-item ${ok ? "hecha" : ""}`} onClick={() => tocar(h)} aria-pressed={ok}
+                      aria-label={`${ok ? "Desmarcar" : "Marcar"} ${h.nombre}`}>
+                <Caja marcada={ok} />
                 <span className="siempre-txt">
                   <b>{h.nombre}</b>
                   <small>{MOMENTO[h.comida] ?? "Cuando sea"} · {num(h.kcal)} kcal · {num(h.proteina)} g prot.</small>
@@ -317,8 +329,7 @@ function SugerenciaSiempre({ s }) {
     setOcupado(true);
     setError("");
     try {
-      await api("/comida/siempre/sugerencia", { method: "POST", body: { clave: s.clave, aceptar } });
-      avisarCambio();
+      await responderSugerencia(s.clave, aceptar);
     } catch (e) {
       setError(e.message);
       setOcupado(false);
