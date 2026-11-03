@@ -84,6 +84,13 @@ function Miniatura({ msgId }) {
   return <span className="mini-foto">{url && <img src={url} alt="" />}</span>;
 }
 
+// Tamaño de la foto según la pantalla: la grande (3200 px) en PC y celulares de alta densidad; la normal si hay ahorro de datos.
+const TAM = (() => {
+  const c = navigator.connection;
+  if (c?.saveData || /(^|-)2g|3g/.test(c?.effectiveType ?? "")) return "";
+  const dpr = window.devicePixelRatio || 1;
+  return Math.max(window.innerWidth, window.innerHeight * 1.5) * dpr > 1500 ? "-xl" : "";
+})();
 const MES = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString("es-CL", { month: "short", year: "numeric" }).replace(".", "");
 
 /**
@@ -100,16 +107,16 @@ function Portada({ fecha, children }) {
   useEffect(() => {
     if (!f) return;
     let vivo = true;
-    for (const t of ["-mini", ""]) {
+    for (const t of ["-mini", TAM]) {
       fotoFondo(`${f.id}${t}.webp`).then((u) => vivo && setUrls((x) => ({ ...x, [`${f.id}${t}`]: u }))).catch(() => {});
     }
     // La siguiente queda lista para cuando la toques.
     const sig = fotos[(((dia + salto + 1) % n) + n) % n];
-    if (sig) fotoFondo(`${sig.id}.webp`).catch(() => {});
+    if (sig) fotoFondo(`${sig.id}${TAM}.webp`).catch(() => {});
     return () => { vivo = false; };
   }, [f, fotos, dia, salto, n]);
   if (!f) return <div className="portada sin-foto">{children}</div>;
-  const grande = urls[f.id];
+  const grande = urls[`${f.id}${TAM}`];
   const mini = urls[`${f.id}-mini`];
   return (
     <div className="portada" style={{ "--tono": f.color }}>

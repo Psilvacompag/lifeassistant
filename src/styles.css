@@ -1153,7 +1153,7 @@ span.paso-marca { cursor: default; }
 .portada-foto img.mini { filter: blur(14px) saturate(1.1); transform: scale(1.12); }
 .portada-foto img.grande { animation: revelar 0.7s ease both, acercar 9s cubic-bezier(0.2, 0.6, 0.3, 1) both; }
 @keyframes revelar { from { opacity: 0; } }
-@keyframes acercar { from { transform: scale(1.09); } }
+@keyframes acercar { from { transform: scale(1.04); } }
 /* La foto se funde en la tinta hacia abajo, para que el saludo se lea siempre */
 .portada::after {
   content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
