@@ -26,12 +26,6 @@ const horaLocal = (iso) => new Date(iso).toLocaleTimeString("es-CL", { hour: "2-
 const diaLocal = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const diaCorto = (iso) => new Date(`${String(iso).slice(0, 10)}T12:00:00`).toLocaleDateString("es-CL", { weekday: "short", day: "numeric" }).replace(".", "");
 const atraso = (m) => (m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}`);
-/** Título corto de un paso de skincare: lo que va antes de ":", "—", "(" o ",", máximo 4 palabras. */
-const corto = (t) => {
-  const base = String(t).split(/\s*[:—–(,.;]\s*|\s+-\s+/)[0].trim() || String(t);
-  const pal = base.split(/\s+/);
-  return pal.length > 4 ? `${pal.slice(0, 4).join(" ")}…` : base;
-};
 /** Rotación estable del sello por ítem, entre -12° y 8°. */
 const giro = (semilla) => {
   let h = 0;
@@ -187,14 +181,14 @@ function Dia({ h, ir }) {
     items.push({
       key: `rutina-${m}`, hora: HORA[m], tipo: "rutina", suave: true, hecho: !siguiente, contable: lista.length, hechosN: hechos.length,
       titulo: nombre, detalle: `${hechos.length} de ${lista.length} pasos`, resumen: `${lista.length} pasos`,
-      sub: lista.map((p) => {
-        const completo = [p.paso !== corto(p.paso) && p.paso, p.producto].filter(Boolean).join(" · ");
-        return { key: `p${p.id}`, txt: corto(p.paso), detalle: completo, hecho: pasos.valor(p.id, p.hecho),
-                 tocar: () => pasos.marcar(p.id, !pasos.valor(p.id, p.hecho)) };
-      }),
+      // El nombre corto lo escribe una persona (o el chat) en el paso; la instrucción completa va debajo.
+      sub: lista.map((p) => ({
+        key: `p${p.id}`, txt: p.nombre || p.paso, detalle: [p.nombre && p.paso, p.producto].filter(Boolean).join(" · "),
+        hecho: pasos.valor(p.id, p.hecho), tocar: () => pasos.marcar(p.id, !pasos.valor(p.id, p.hecho)),
+      })),
       accion: siguiente && { txt: "Hecho", hacer: () => pasos.marcar(siguiente.id, true) },
-      ahoraTitulo: siguiente && corto(siguiente.paso),
-      ahoraDetalle: siguiente && [`${nombre} · ${hechos.length + 1} de ${lista.length}`, siguiente.paso !== corto(siguiente.paso) && siguiente.paso].filter(Boolean).join(" — "),
+      ahoraTitulo: siguiente && (siguiente.nombre || siguiente.paso),
+      ahoraDetalle: siguiente && [siguiente.nombre && siguiente.paso, `${nombre}, ${hechos.length + 1} de ${lista.length}`].filter(Boolean).join(" · "),
       abrir: () => ir("cuidado"),
     });
   }
@@ -273,7 +267,7 @@ function Dia({ h, ir }) {
     const m = ahoraMin - minutos(x.hora);
     x.atrasado = !x.hecho && !x.omitido && !x.suave && x.tipo !== "cita" && m > 0;
     x.minutosAtraso = m;
-    x.pasado = m > 0 && !x.atrasado; // lo pasado se apaga; lo atrasado pendiente sigue a plena vista
+    x.pasado = m > 0 && (x.hecho || x.omitido || !x.accion); // lo pasado y resuelto se apaga; lo pendiente sigue a plena vista
   }
 
   // ── Ahora: lo atrasado importante, si no lo que toca, si no lo siguiente ──
@@ -283,10 +277,6 @@ function Dia({ h, ir }) {
     ?? pend.find((x) => x.minutosAtraso < 0);
   if (ahora) ahora.pasado = false;
 
-  // Avance del día (para el ensō y la frase): cada paso, dosis, comida y recordatorio cuenta.
-  const total = items.reduce((s, x) => s + (x.contable ?? 0), 0);
-  const hechos = items.reduce((s, x) => s + (x.tipo === "rutina" ? x.hechosN : x.contable && x.hecho ? 1 : 0), 0);
-  const atrasados = conHora.filter((x) => x.atrasado).length;
 
   // Agrupa por hora y ubica la línea del momento actual.
   const grupos = [];
@@ -309,8 +299,8 @@ function Dia({ h, ir }) {
   return (
     <>
       <div className="principal">
-      <p className="frase">{frase({ h, hechos, total, atrasados, ahoraMin })}</p>
-      <Ahora x={ahora} ahoraMin={ahoraMin} hechos={hechos} total={total} />
+      <p className="frase">{frase({ h, conHora, ahoraMin })}</p>
+      <Ahora x={ahora} ahoraMin={ahoraMin} />
       <Balance n={h.nutricion} ir={ir} sugerencia={h.siempre?.sugerencia} />
 
       <section className="dia" aria-label="Hoy">
@@ -337,38 +327,33 @@ function Dia({ h, ir }) {
   );
 }
 
-/** Una o dos frases cortas desde los datos del día, en tono de conversación. */
-function frase({ h, hechos, total, atrasados, ahoraMin }) {
+const minus = (t) => (/^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]/.test(t) ? t[0].toLowerCase() + t.slice(1) : t);
+const enLista = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} y ${xs.at(-1)}` : xs[0]);
+
+/** Lo que falta, lo próximo y cómo va la comida, en palabras concretas (no un contador). */
+function frase({ h, conHora, ahoraMin }) {
+  const falta = [];
+  for (const x of conHora) {
+    if (x.hecho || x.omitido || x.minutosAtraso < 0) continue;
+    if (x.tipo === "rutina") falta.push(...x.sub.filter((p) => !p.hecho).map((p) => minus(p.txt)));
+    else if (x.atrasado) falta.push(minus(x.titulo));
+  }
+  const prox = conHora.find((x) => x.minutosAtraso < 0 && !x.hecho && x.accion);
+  const partes = [];
+  if (falta.length) partes.push(`Te falta ${enLista(falta.length > 3 ? [...falta.slice(0, 2), `${falta.length - 2} cosas más`] : falta)}`);
+  if (prox) partes.push(`Lo próximo es a las ${prox.hora}`);
+  let txt = partes.length ? `${partes.join(". ")}.` : "No te queda nada pendiente con hora.";
   const n = h.nutricion;
-  if (!hechos && !n.items.length) return "¿Partimos? Todavía no marcas nada hoy.";
-  const primera = total && hechos >= total ? "Día completo, bien ahí." : `Llevas ${hechos} de ${total} cosas del día.`;
-  let segunda = "";
-  if (atrasados) segunda = atrasados === 1 ? "Hay una pendiente atrasada." : `Hay ${atrasados} pendientes atrasadas.`;
-  else if (n.metas.kcal) {
+  if (n.metas.kcal) {
     const esperado = Math.min(1, Math.max(0, (ahoraMin - 7 * 60) / (15 * 60)));
     const real = n.totales.kcal / n.metas.kcal;
-    const comida = real > 1 ? "Ya pasaste tu meta de calorías." : real < esperado - 0.25 ? "Vas corto de comida para la hora."
-      : real > esperado + 0.25 ? "Vas adelantado en calorías." : "La comida va en línea.";
-    const prot = n.metas.proteina && n.totales.proteina / n.metas.proteina < real - 0.15 ? " Ojo con la proteína." : "";
-    segunda = comida + prot;
-  }
-  return `${primera} ${segunda}`.trim();
+    txt += real > 1 ? " Ya pasaste tu meta de calorías." : real < esperado - 0.25 ? " Vas corto de comida para la hora."
+      : real > esperado + 0.25 ? " Vas adelantado en calorías." : " La comida va en línea.";
+  } else if (!n.items.length) txt += " ¿Qué has comido hoy?";
+  return txt;
 }
 
-function Enso({ hechos, total }) {
-  const largo = 251; // perímetro aprox. del trazo (r = 40)
-  const parte = total ? Math.max(0.06, hechos / total) : 0;
-  return (
-    <svg className="enso" viewBox="0 0 100 100" role="img" aria-label={`${hechos} de ${total} cosas del día hechas`}>
-      <circle cx="50" cy="50" r="40" className="enso-guia" />
-      <path className="enso-trazo" d="M50 10 a40 40 0 1 1 -0.1 0" pathLength={largo}
-            style={{ "--total": largo, "--hecho": largo * (1 - parte * 0.94) }} />
-      <text x="50" y="50" className="enso-ima" dominantBaseline="central" textAnchor="middle">今</text>
-    </svg>
-  );
-}
-
-function Ahora({ x, ahoraMin, hechos, total }) {
+function Ahora({ x, ahoraMin }) {
   const [ocupado, setOcupado] = useState(false);
   const [timbre, setTimbre] = useState(null); // lo recién hecho, mientras baja el sello grande
   const mostrado = timbre ?? x;
@@ -385,7 +370,6 @@ function Ahora({ x, ahoraMin, hechos, total }) {
   if (!mostrado) {
     return (
       <section className="ahora vacio" aria-label="Ahora">
-        <Enso hechos={hechos} total={total} />
         <span className="ahora-cuando">Ahora</span>
         <p className="ahora-titulo">Todo al día.</p>
         <p className="ahora-detalle">No queda nada pendiente con hora para hoy.</p>
@@ -397,7 +381,6 @@ function Ahora({ x, ahoraMin, hechos, total }) {
   const sellable = ["Tomé", "Hecho", "La comí", "Listo"].includes(mostrado.accion?.txt);
   return (
     <section className={`ahora ${mostrado.atrasado ? "tarde" : ""} ${timbre ? "timbrado" : ""}`} aria-label="Ahora" aria-live="polite">
-      <Enso hechos={hechos} total={total} />
       <div className="ahora-cuerpo" key={mostrado.key}>
         <span className="ahora-cuando">{cuando}</span>
         <p className="ahora-titulo">{mostrado.ahoraTitulo ?? mostrado.titulo}</p>
