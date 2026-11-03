@@ -33,7 +33,7 @@ export function useMarcas(enviar, { salida = 0 } = {}) {
   const vivo = useRef(true);
   useEffect(() => () => { vivo.current = false; }, []);
   const marcar = useCallback(async (id, v) => {
-    navigator.vibrate?.(8);
+    navigator.vibrate?.(10);
     setError("");
     setLocal((l) => ({ ...l, [id]: { v, hasta: Infinity } }));
     try {
