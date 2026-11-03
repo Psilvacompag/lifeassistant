@@ -299,6 +299,7 @@ function Dia({ h, ir }) {
 
   return (
     <>
+      <div className="principal">
       <p className="frase">{frase({ h, hechos, total, atrasados, ahoraMin })}</p>
       <Ahora x={ahora} ahoraMin={ahoraMin} hechos={hechos} total={total} />
       <Balance n={h.nutricion} ir={ir} sugerencia={h.siempre?.sugerencia} />
@@ -318,8 +319,11 @@ function Dia({ h, ir }) {
         {errores.length > 0 && <p className="error chico-txt">{errores[0]}</p>}
       </section>
 
-      <Proximos h={h} hoy={hoy} ir={ir} />
-      <Resto h={h} ir={ir} compras={compras} />
+      </div>
+      <aside className="lateral">
+        <Proximos h={h} hoy={hoy} ir={ir} />
+        <Resto h={h} ir={ir} compras={compras} />
+      </aside>
     </>
   );
 }

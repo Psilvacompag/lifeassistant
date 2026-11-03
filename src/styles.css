@@ -1182,3 +1182,58 @@ span.paso-marca { cursor: default; }
 @media (prefers-reduced-motion: reduce) { .portada-foto img.grande { animation: revelar 0.4s ease both; } }
 @media (prefers-reduced-motion: reduce) { .enso-trazo { stroke-dashoffset: var(--hecho); } }
 @media (min-width: 720px) { .portada { margin-top: -1.2rem; border-radius: 16px 16px 0 0; } }
+
+/* ══ Pantalla grande ═════════════════════════════════════════════════════════════════════ */
+/* En celular las columnas no existen: sus hijos son parte del flujo normal de la página. */
+.principal, .lateral { display: contents; }
+.principal > *, .lateral > * { animation: entrar 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both 0.15s; }
+@media (prefers-reduced-motion: reduce) { .principal > *, .lateral > * { animation: none; } }
+
+@media (min-width: 1100px) {
+  /* Navegación: barra vertical a la izquierda */
+  .shell { padding-left: 88px; }
+  .nav {
+    top: 0; bottom: 0; left: 0; right: auto; width: 88px; height: 100vh; transform: none;
+    flex-direction: column; justify-content: center; gap: 0.6rem; padding: 1rem 0;
+    border: 0; border-right: 1px solid rgb(229 69 47 / 0.25); border-radius: 0;
+    background: color-mix(in srgb, #0e0f12 92%, transparent);
+  }
+  .nav button { flex: none; height: 64px; }
+  .nav button.nav-chat { flex: none; height: 76px; }
+  .nav-chat .burbuja-nav { margin-top: 0; }
+  .nav button.activa:not(.nav-chat)::before { top: 18%; bottom: 18%; left: 0; right: auto; width: 3px; height: auto; border-radius: 0 3px 3px 0; }
+  .contenido { padding-bottom: 2rem; }
+  .shell.en-chat .chat { height: calc(100dvh - env(safe-area-inset-top)); }
+
+  /* Inicio: portada panorámica a todo el ancho; "Ahora" se monta sobre su borde. Debajo, el día y lo que viene. */
+  .contenido:has(> .inicio) { max-width: none; padding-bottom: 0; }
+  .pagina.inicio {
+    --g: 2.8rem;
+    display: grid; padding: 0 0 3rem; column-gap: var(--g); row-gap: 0; align-items: start;
+    grid-template-columns: 1fr minmax(0, 840px) minmax(300px, 400px) 1fr;
+  }
+  .inicio > :not(.portada) { grid-column: 2 / 4; }
+  .inicio > .portada {
+    grid-column: 1 / -1; margin: 0; border-radius: 0; height: 60vh; min-height: 430px; max-height: 680px;
+    padding: 0 max(var(--g), calc((100% - 1240px - var(--g)) / 2)) 8.5rem;
+  }
+  .inicio > .portada::after {
+    background:
+      linear-gradient(180deg, rgb(18 19 23 / 0.3) 0%, transparent 22%, transparent 45%, rgb(18 19 23 / 0.7) 75%, var(--fondo) 100%),
+      radial-gradient(130% 90% at 50% 10%, transparent 55%, rgb(18 19 23 / 0.4) 100%);
+  }
+  .inicio .cab-inicio h1 { font-size: clamp(2.8rem, 3.6vw, 4rem); }
+  .inicio .fecha-hoy { font-size: 1rem; }
+  .inicio .cab-inicio > button.icono { display: none; }
+  .portada-pie { top: 1.4rem; right: max(var(--g, 1.4rem), calc((100% - 1240px - 2.8rem) / 2)); font-size: 0.8rem; }
+  .inicio .principal, .inicio .lateral { display: flex; flex-direction: column; gap: 2.1rem; min-width: 0; }
+  .inicio .principal { grid-column: 2; grid-row: 2; margin-top: -7rem; position: relative; z-index: 1; }
+  .inicio .lateral { grid-column: 3; grid-row: 2; padding-top: 1.2rem; }
+  .inicio .frase { margin: 0; font-size: 1.3rem; max-width: 34ch; color: var(--texto); text-shadow: 0 1px 12px rgb(0 0 0 / 0.6); }
+  .inicio .ahora { padding: 1.6rem 1.6rem 1.5rem; }
+  .inicio .ahora-titulo { font-size: 2.3rem; }
+  .inicio .enso { width: 96px; height: 96px; top: 16px; right: 16px; }
+  .inicio .ahora-cuerpo > .ahora-cuando, .inicio .ahora-cuerpo > .ahora-titulo { padding-right: 110px; }
+  .inicio .lateral .dia-titulo { font-size: 1.15rem; }
+  .inicio .lateral .lineas > li { grid-template-columns: 4.2rem minmax(0, 1fr) auto auto; padding: 0.65rem 0; }
+}
