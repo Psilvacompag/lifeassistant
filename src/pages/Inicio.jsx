@@ -84,11 +84,13 @@ function Miniatura({ msgId }) {
   return <span className="mini-foto">{url && <img src={url} alt="" />}</span>;
 }
 
-// Tamaño de la foto según la pantalla: la grande (3200 px) en PC y celulares de alta densidad; la normal si hay ahorro de datos.
+// Tamaño de la foto según los píxeles reales de la pantalla: 4K (4000 px, franja ya recortada) en monitores grandes,
+// la grande (3200 px) en PC y celulares de alta densidad, la normal si hay ahorro de datos.
 const TAM = (() => {
   const c = navigator.connection;
   if (c?.saveData || /(^|-)2g|3g/.test(c?.effectiveType ?? "")) return "";
   const dpr = window.devicePixelRatio || 1;
+  if (window.innerWidth >= 1100 && window.screen.width * dpr >= 2600) return "-4k";
   return Math.max(window.innerWidth, window.innerHeight * 1.5) * dpr > 1500 ? "-xl" : "";
 })();
 const MES = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString("es-CL", { month: "short", year: "numeric" }).replace(".", "");
@@ -121,8 +123,8 @@ function Portada({ fecha, children }) {
   return (
     <div className="portada" style={{ "--tono": f.color }}>
       <button className="portada-foto" onClick={() => setSalto((s) => s + 1)} aria-label={`Foto del viaje: ${f.lugar ?? "Japón"}. Tocar para ver otra`}>
-        {mini && <img key={`${f.id}m`} src={mini} alt="" className="mini" style={{ objectPosition: f.vertical ? "50% 38%" : "50% 50%" }} />}
-        {grande && <img key={f.id} src={grande} alt="" className="grande" style={{ objectPosition: f.vertical ? "50% 38%" : "50% 50%" }} />}
+        {mini && <img key={`${f.id}m`} src={mini} alt="" className="mini" style={{ objectPosition: f.vertical && TAM !== "-4k" ? "50% 38%" : "50% 50%" }} />}
+        {grande && <img key={f.id} src={grande} alt="" className="grande" style={{ objectPosition: f.vertical && TAM !== "-4k" ? "50% 38%" : "50% 50%" }} />}
       </button>
       <span className="portada-pie" aria-hidden><i>旅</i>{[f.lugar, f.fecha && MES(f.fecha)].filter(Boolean).join(" · ")}</span>
       <div className="portada-texto">{children}</div>

@@ -1214,7 +1214,7 @@ span.paso-marca { cursor: default; }
   }
   .inicio > :not(.portada) { grid-column: 2 / 4; }
   .inicio > .portada {
-    grid-column: 1 / -1; margin: 0; border-radius: 0; height: 60vh; min-height: 430px; max-height: 680px;
+    grid-column: 1 / -1; margin: 0; border-radius: 0; height: min(62vh, 42vw); min-height: 430px;
     padding: 0 max(var(--g), calc((100% - 1240px - var(--g)) / 2)) 8.5rem;
   }
   .inicio > .portada::after {
