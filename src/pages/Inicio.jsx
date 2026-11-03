@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
-import { api, avisarCambio, fotoChat, fotoFondo } from "../api.js";
+import { ArrowUp, Camera, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
+import { api, avisarCambio, chat, fotoChat, fotoFondo } from "../api.js";
 import { marcarPaso, responderSugerencia, useLoDeSiempre } from "../componentes.jsx";
 import { Ico } from "../iconos.jsx";
 import { Avatar, Estado, clp, diasHasta, dinero, fechaCorta, num, useApi, useMarcas, venceTexto } from "../ui.jsx";
@@ -222,7 +222,8 @@ function Dia({ h, ir }) {
       accion: pendHab ? { txt: "La comí", hacer: () => siempre.marcar(pendHab.id, true) }
         : !regs.length && { txt: "Foto", icono: Camera, hacer: () => ir("chat", { camara: true }) },
       ahoraTitulo: pendHab ? pendHab.nombre : PREGUNTA[c]?.[0] ?? `${NOMBRE[c]} sin registrar`,
-      ahoraDetalle: pendHab ? `${NOMBRE[c]} de siempre · ${num(pendHab.kcal)} kcal` : "Una foto del plato basta",
+      ahoraDetalle: pendHab ? `${NOMBRE[c]} de siempre · ${num(pendHab.kcal)} kcal` : "Escríbelo o mándale una foto: las calorías las calcula el asistente.",
+      anotar: !regs.length && !pendHab && { comida: c, ir },
       abrir: () => ir("comida"),
     });
   }
@@ -391,6 +392,7 @@ function Ahora({ x, ahoraMin }) {
           </button>
           {mostrado.otra && <button className="enlace" disabled={ocupado || !!timbre} onClick={() => hacer(mostrado.otra.hacer, false)}>{mostrado.otra.txt}</button>}
         </div>
+        {mostrado.anotar && <AnotarComida {...mostrado.anotar} />}
       </div>
       {timbre && <span className="timbre" aria-hidden><Sello hecho grande semilla={timbre.key} /></span>}
     </section>
@@ -444,10 +446,56 @@ function Balance({ n, ir, sugerencia }) {
   );
 }
 
+const EJEMPLO = {
+  desayuno: "Ej: 2 huevos con pan pita y café", almuerzo: "Ej: pollo con arroz y ensalada",
+  once: "Ej: té con 2 galletas de arroz", cena: "Ej: carne con puré", snack: "Ej: un yogur protein",
+};
+
+/**
+ * Anotar una comida escribiéndola, sin ir al chat: el texto va al mismo asistente, que estima kcal y proteína y la registra.
+ * Si necesita preguntar algo (una porción dudosa), muestra la pregunta y se sigue en el chat.
+ */
+function AnotarComida({ comida, ir, enfocar }) {
+  const [txt, setTxt] = useState("");
+  const [estado, setEstado] = useState(null); // null | "calculando" | { error } | { respuesta }
+  const ref = useRef(null);
+  useEffect(() => { if (enfocar) ref.current?.focus(); }, [enfocar]);
+  async function enviar(e) {
+    e.preventDefault();
+    const t = txt.trim();
+    if (!t || estado === "calculando") return;
+    setEstado("calculando");
+    try {
+      const fin = await chat({ texto: `${NOMBRE[comida]} de hoy (anotado desde Inicio): ${t}` }, () => {});
+      setTxt("");
+      setEstado({ respuesta: fin?.texto ?? "" });
+      avisarCambio(); // si quedó registrada, la fila pasa a hecha con sus kcal
+    } catch (err) {
+      setEstado({ error: err.message || "No se pudo anotar. Prueba de nuevo." });
+    }
+  }
+  const calculando = estado === "calculando";
+  return (
+    <form className={`anotar ${calculando ? "calculando" : ""}`} onSubmit={enviar}>
+      <div className="anotar-caja">
+        <input ref={ref} value={txt} onChange={(e) => setTxt(e.target.value)} placeholder={EJEMPLO[comida]} maxLength={500}
+          disabled={calculando} enterKeyHint="send" aria-label={`Qué comiste de ${NOMBRE[comida].toLowerCase()}`} />
+        <button type="submit" className="anotar-enviar" disabled={calculando || !txt.trim()} aria-label="Anotar"><Ico i={ArrowUp} size={18} /></button>
+      </div>
+      {calculando && <small className="anotar-estado">Calculando calorías y proteína…</small>}
+      {estado?.error && <small className="anotar-estado tarde-txt">{estado.error}</small>}
+      {estado?.respuesta && (
+        <small className="anotar-estado">{estado.respuesta} <button type="button" className="enlace" onClick={() => ir("chat")}>Seguir en el chat</button></small>
+      )}
+    </form>
+  );
+}
+
 function Fila({ x, actual, abierto, alternar }) {
   // Lo hecho queda en una sola línea; al tocarlo se abre.
   const plegado = x.hecho && !abierto && !x.saliendo;
-  const tocarTxt = x.hecho ? alternar : x.abrir;
+  const [escribiendo, setEscribiendo] = useState(false);
+  const tocarTxt = x.hecho ? alternar : x.anotar ? () => setEscribiendo((v) => !v) : x.abrir;
   return (
     <li className={`paso-dia ${x.hecho ? "hecho" : ""} ${x.atrasado ? "tarde" : ""} ${actual ? "actual" : ""} ${x.pasado ? "pasado" : ""} ${x.saliendo ? "saliendo" : ""} ${plegado ? "plegado" : ""}`}>
       {x.tocar ? (
@@ -471,6 +519,7 @@ function Fila({ x, actual, abierto, alternar }) {
           </button>
           {x.fotos?.length > 0 && <span className="fotos-fila">{x.fotos.slice(0, 2).map((id) => <Miniatura key={id} msgId={id} />)}</span>}
         </div>
+        {escribiendo && x.anotar && <AnotarComida {...x.anotar} enfocar />}
         {!plegado && x.sub?.length > 0 && (
           <ul className="paso-sub">
             {x.sub.map((s) => (

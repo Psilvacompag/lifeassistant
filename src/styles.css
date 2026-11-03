@@ -1210,3 +1210,17 @@ span.paso-marca { cursor: default; }
   .inicio .lateral .dia-titulo { font-size: 1.15rem; }
   .inicio .lateral .lineas > li { grid-template-columns: 4.2rem minmax(0, 1fr) auto auto; padding: 0.65rem 0; }
 }
+
+/* Anotar una comida escribiéndola, sin salir de Inicio */
+.anotar { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.55rem; animation: entrar 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.anotar-caja { display: flex; align-items: center; gap: 0.35rem; background: var(--fondo); border: 1px solid var(--borde-fuerte);
+  border-radius: 10px; padding: 0.2rem 0.25rem 0.2rem 0.75rem; transition: border-color 0.15s; }
+.anotar-caja:focus-within { border-color: var(--shu); }
+.anotar-caja input { all: unset; flex: 1; min-width: 0; font: inherit; font-size: 0.95rem; color: var(--texto); padding: 0.45rem 0; }
+.anotar-caja input::placeholder { color: var(--suave); }
+.anotar-caja .anotar-enviar { all: unset; cursor: pointer; width: 34px; height: 34px; border-radius: 8px; background: var(--shu); color: var(--acento-texto); display: grid; place-items: center; flex: none; }
+.anotar-caja .anotar-enviar:disabled { background: var(--superficie-2); color: var(--suave); }
+.anotar-estado { color: var(--texto-2); font-size: 0.82rem; line-height: 1.45; }
+.anotar.calculando .anotar-estado { animation: latido 1.4s ease-in-out infinite; }
+@keyframes latido { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .anotar, .anotar.calculando .anotar-estado { animation: none; } }
