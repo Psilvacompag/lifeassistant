@@ -1,8 +1,8 @@
-import { Apple, Camera, ChefHat, Coffee, CookingPot, Croissant, PenLine, Soup, Star, Trash2 } from "lucide-react";
+import { Apple, Camera, ChefHat, Coffee, CookingPot, Croissant, PenLine, Repeat, Soup, Star, Trash2 } from "lucide-react";
 import { Ico } from "../iconos.jsx";
 import { useEffect, useState } from "react";
 import { api, avisarCambio } from "../api.js";
-import { IdeasComida, comidaDeAhora } from "../componentes.jsx";
+import { IdeasComida, LoDeSiempre, comidaDeAhora } from "../componentes.jsx";
 import {
   Anillo, Badge, Campo, Card, Columnas, Estado, Formulario, Hoja, IconoFila, Resumen, Seccion, diaSemana, fechaCorta, isoLocal, limpiar,
   num, useApi,
@@ -19,6 +19,8 @@ export default function Comida({ ir, hojaInicial, onOpcionesUsadas }) {
   const [fecha, setFecha] = useState(isoLocal());
   const { data: d, error, cargando } = useApi(`/comida?fecha=${fecha}`);
   const favs = useApi("/comida/favoritas");
+  const siempre = useApi(`/comida/siempre?fecha=${fecha}`);
+  const [editando, setEditando] = useState(null); // favorita en edición
   const hoyData = useApi(`/comida?fecha=${isoLocal()}`);
   const semanaHoy = hoyData.data?.semana;
   const semanaMetas = hoyData.data?.metas;
@@ -98,6 +100,11 @@ export default function Comida({ ir, hojaInicial, onOpcionesUsadas }) {
               <button className="atajo" onClick={() => ir("recetas")}><Ico i={ChefHat} size={20} />Recetas</button>
             </div>
 
+            <Seccion titulo="Lo de siempre" accion={siempre.data?.habituales?.length > 0 &&
+              <button className="enlace chico-txt" onClick={() => setHoja("favoritas")}>Cambiar</button>}>
+              <LoDeSiempre datos={siempre.data} fecha={fecha} onElegir={() => setHoja("favoritas")} />
+            </Seccion>
+
             {esHoy && (
               <Seccion titulo={`Ideas para ${{ desayuno: "el desayuno", almuerzo: "el almuerzo", once: "la once", cena: "la cena", snack: "un snack" }[comidaDeAhora()]}`}>
                 <IdeasComida />
@@ -147,11 +154,16 @@ export default function Comida({ ir, hojaInicial, onOpcionesUsadas }) {
       <Hoja titulo="Registrar a mano" abierta={hoja === "manual"} onCerrar={() => setHoja(null)}>
         <Formulario
           onEnviar={async (v) => {
-            await api("/comida", { method: "POST", body: { ...limpiar(v, ["kcal", "proteina", "carbos", "grasa"]), fecha } });
-            if (v.favorita) {
-              await api("/comida/favoritas", { method: "POST", body: { nombre: v.descripcion.slice(0, 80),
-                ...limpiar(v, ["kcal", "proteina", "carbos", "grasa"]) } });
+            const { kcal, proteina, carbos, grasa } = v;
+            const macros = limpiar({ kcal, proteina, carbos, grasa }, ["kcal", "proteina", "carbos", "grasa"]);
+            let fav = null;
+            if (v.favorita || v.habitual) {
+              fav = await api("/comida/favoritas", { method: "POST", body: { nombre: v.descripcion.slice(0, 80),
+                descripcion: v.descripcion, ...macros, comida: v.comida, habitual: !!v.habitual } });
             }
+            // Si es de siempre, se anota a través de ella: así hoy ya aparece marcada.
+            if (fav?.habitual) await api(`/comida/favoritas/${fav.id}/registrar`, { method: "POST", body: { comida: v.comida, fecha } });
+            else await api("/comida", { method: "POST", body: { comida: v.comida, descripcion: v.descripcion, ...macros, fecha } });
             avisarCambio();
             setHoja(null);
           }}
@@ -167,33 +179,78 @@ export default function Comida({ ir, hojaInicial, onOpcionesUsadas }) {
             <Campo label="Grasa (g)" name="grasa" type="number" min="0" step="0.1" inputMode="decimal" />
           </div>
           <label className="check-linea"><input type="checkbox" name="favorita" /> Guardar también como favorita</label>
+          <label className="check-linea"><input type="checkbox" name="habitual" /> Es lo de siempre (lo marco con un toque cada día)</label>
           <p className="suave chico-txt">¿No sabes los números? Escríbelo o mándale una foto al chat y él calcula.</p>
         </Formulario>
       </Hoja>
 
-      <Hoja titulo="Favoritas" abierta={hoja === "favoritas"} onCerrar={() => setHoja(null)}>
+      <Hoja titulo="Favoritas y de siempre" abierta={hoja === "favoritas"} onCerrar={() => setHoja(null)}>
+        <p className="suave chico-txt" style={{ marginTop: 0 }}>
+          Las <b>de siempre</b> aparecen en Inicio para marcarlas con un toque. Toca una para cambiarla.
+        </p>
         <Estado cargando={favs.cargando} error={favs.error}
                 vacio={!favs.data?.length && "Aún no tienes favoritas. Guárdalas al registrar a mano o pídeselo al chat."}>
           <ul className="lista">
             {favs.data?.map((f) => (
-              <li key={f.id} className="fila">
-                <span className="fila-txt">
+              <li key={f.id} className="fila fav-fila">
+                <span className="fila-txt" role="button" tabIndex={0} onClick={() => setEditando(f)}
+                      onKeyDown={(e) => e.key === "Enter" && setEditando(f)}>
                   <b>{f.nombre}</b>
-                  <small className="suave">{num(f.kcal)} kcal · P {num(f.proteina)} g</small>
+                  <small className="suave">{f.comida ? `${f.comida} · ` : ""}{num(f.kcal)} kcal · P {num(f.proteina)} g</small>
                 </span>
-                <button className="chico" onClick={async () => {
-                  await api(`/comida/favoritas/${f.id}/registrar`, { method: "POST", body: { comida: comidaSugerida(), fecha } });
-                  avisarCambio();
-                  setHoja(null);
-                }}>Agregar</button>
-                <button className="icono chico" aria-label="Borrar favorita" onClick={async () => {
-                  await api(`/comida/favoritas/${f.id}`, { method: "DELETE" });
-                  favs.recargar();
-                }}><Ico i={Trash2} size={16} /></button>
+                <button className={f.habitual ? "chico" : "secundario chico"} aria-pressed={f.habitual}
+                        onClick={async () => {
+                          await api(`/comida/favoritas/${f.id}`, { method: "PATCH",
+                            body: { habitual: !f.habitual, ...(!f.habitual && !f.comida ? { comida: comidaSugerida() } : {}) } });
+                          avisarCambio();
+                        }}><Ico i={Repeat} size={15} />{f.habitual ? "De siempre" : "Hacer de siempre"}</button>
+                {!f.habitual && (
+                  <button className="secundario chico" onClick={async () => {
+                    await api(`/comida/favoritas/${f.id}/registrar`, { method: "POST", body: { comida: f.comida || comidaSugerida(), fecha } });
+                    avisarCambio();
+                    setHoja(null);
+                  }}>Agregar</button>
+                )}
               </li>
             ))}
           </ul>
         </Estado>
+      </Hoja>
+
+      <Hoja titulo="Cambiar favorita" abierta={!!editando} onCerrar={() => setEditando(null)}>
+        {editando && (
+          <Formulario key={editando.id}
+            onEnviar={async (v) => {
+              await api(`/comida/favoritas/${editando.id}`, { method: "PATCH", body: {
+                ...limpiar(v, ["kcal", "proteina", "carbos", "grasa"]), comida: v.comida || null, habitual: !!v.habitual } });
+              avisarCambio();
+              setEditando(null);
+            }}
+          >
+            <Campo label="Nombre corto" name="nombre" required maxLength={80} defaultValue={editando.nombre} />
+            <Campo label="Qué es" name="descripcion" required maxLength={500} defaultValue={editando.descripcion} />
+            <Campo label="Comida del día" name="comida" type="select" defaultValue={editando.comida ?? ""}>
+              <option value="">cualquiera</option>
+              {COMIDAS.map((c) => <option key={c} value={c}>{c}</option>)}
+            </Campo>
+            <div className="grid-2">
+              <Campo label="Calorías" name="kcal" type="number" min="0" required inputMode="numeric" defaultValue={editando.kcal} />
+              <Campo label="Proteína (g)" name="proteina" type="number" min="0" step="0.1" inputMode="decimal" defaultValue={Number(editando.proteina)} />
+              <Campo label="Carbos (g)" name="carbos" type="number" min="0" step="0.1" inputMode="decimal" defaultValue={Number(editando.carbos)} />
+              <Campo label="Grasa (g)" name="grasa" type="number" min="0" step="0.1" inputMode="decimal" defaultValue={Number(editando.grasa)} />
+            </div>
+            <label className="check-linea"><input type="checkbox" name="habitual" defaultChecked={editando.habitual} /> Es lo de siempre</label>
+            <p className="suave chico-txt">El cambio vale desde ahora; lo que ya anotaste no se toca. Si hoy fue distinto, regístralo a mano o díselo al chat.</p>
+          </Formulario>
+        )}
+        {editando && (
+          <button className="enlace chico-txt borrar-fav" onClick={async () => {
+            if (!confirm(`¿Borrar "${editando.nombre}"?`)) return;
+            await api(`/comida/favoritas/${editando.id}`, { method: "DELETE" });
+            avisarCambio();
+            setEditando(null);
+          }}><Ico i={Trash2} size={15} /> Borrar favorita</button>
+        )}
       </Hoja>
     </div>
   );

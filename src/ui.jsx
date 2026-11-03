@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, Check, Sparkles, X } from "lucide-react";
-import { api } from "./api.js";
+import { api, avisarCambio } from "./api.js";
 import { Ico } from "./iconos.jsx";
 
 // ── Datos ────────────────────────────────────────────────────────────────────
@@ -20,6 +20,48 @@ export function useApi(path) {
     return () => window.removeEventListener("la:cambio", recargar);
   }, [recargar]);
   return { ...estado, recargar };
+}
+
+/**
+ * Checks que responden al instante: el toque se ve marcado de inmediato (con vibración corta) y la API va detrás.
+ * Si falla, vuelve al valor del servidor y deja el error. `valor(id, servidor)` da lo que hay que mostrar.
+ * `salida` (ms): para listas donde lo marcado desaparece, espera a que termine la animación antes de recargar.
+ */
+export function useMarcas(enviar, { salida = 0 } = {}) {
+  const [local, setLocal] = useState({});
+  const [error, setError] = useState("");
+  const vivo = useRef(true);
+  useEffect(() => () => { vivo.current = false; }, []);
+  const marcar = useCallback(async (id, v) => {
+    navigator.vibrate?.(8);
+    setError("");
+    setLocal((l) => ({ ...l, [id]: { v, hasta: Infinity } }));
+    try {
+      await Promise.all([enviar(id, v), new Promise((ok) => setTimeout(ok, salida))]);
+      // Se mantiene un rato más: la recarga del servidor llega después y no debe parpadear.
+      if (vivo.current) setLocal((l) => ({ ...l, [id]: { v, hasta: Date.now() + 4000 } }));
+      avisarCambio();
+    } catch (e) {
+      if (!vivo.current) return;
+      setLocal((l) => { const n = { ...l }; delete n[id]; return n; });
+      setError(e.message);
+    }
+  }, [enviar, salida]);
+  const valor = (id, servidor) => {
+    const x = local[id];
+    return x && x.hasta > Date.now() ? x.v : servidor;
+  };
+  const enCurso = (id) => local[id]?.hasta === Infinity;
+  return { valor, marcar, enCurso, error };
+}
+
+/** Casilla con animación: se llena y el visto se dibuja. Decorativa: el botón o la fila llevan el texto. */
+export function Caja({ marcada, chica }) {
+  return (
+    <span className={`caja ${marcada ? "marcada" : ""} ${chica ? "chica" : ""}`} aria-hidden>
+      <svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" /></svg>
+    </span>
+  );
 }
 
 // ── Formato ──────────────────────────────────────────────────────────────────

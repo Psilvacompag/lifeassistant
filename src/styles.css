@@ -210,11 +210,36 @@ button.secundario.peligro { border-color: color-mix(in srgb, var(--critico) 35%,
 .hora { font-weight: 650; min-width: 2.9rem; color: var(--texto-2); font-size: 0.9rem; }
 .acciones { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
 .monto { white-space: nowrap; font-weight: 600; }
+/* Casilla: el fondo crece desde el centro, el visto se dibuja y la caja rebota un poco. Todo en el mismo toque. */
 .caja {
-  width: 22px; height: 22px; border-radius: 7px; border: 1.5px solid var(--borde-fuerte); flex: none;
-  display: grid; place-items: center; color: #fff; transition: background 0.15s;
+  --t: 22px;
+  position: relative; width: var(--t); height: var(--t); border-radius: 7px; flex: none;
+  border: 1.5px solid var(--borde-fuerte); display: grid; place-items: center; color: #fff;
+  transition: border-color 0.18s ease, transform 0.12s ease;
 }
-.caja.marcada { background: var(--bueno); border-color: var(--bueno); }
+.caja::before {
+  content: ""; position: absolute; inset: -1.5px; border-radius: inherit; background: var(--bueno);
+  transform: scale(0.3); opacity: 0; transition: transform 0.22s cubic-bezier(0.3, 1.5, 0.6, 1), opacity 0.14s ease;
+}
+.caja svg { position: relative; width: 72%; height: 72%; fill: none; stroke: currentColor; stroke-width: 3;
+  stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 22; stroke-dashoffset: 22;
+  transition: stroke-dashoffset 0.2s ease 0.06s; }
+.caja.marcada { border-color: var(--bueno); animation: caja-pop 0.28s ease; }
+.caja.marcada::before { transform: scale(1); opacity: 1; }
+.caja.marcada svg { stroke-dashoffset: 0; }
+.caja.chica { --t: 19px; border-radius: 6px; }
+@keyframes caja-pop { 40% { transform: scale(1.14); } }
+/* Al apretar (antes de soltar) la caja se hunde: se siente que respondió. */
+.fila.check:active .caja, .check-mini li:active .caja, .compra-caja:active .caja, .siempre-item:active .caja { transform: scale(0.88); }
+.fila.check, .check-mini li, .compra-caja, .siempre-item { touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.fila.check .fila-txt b, .check-mini li span:last-child { transition: color 0.2s ease; }
+/* Lo marcado que se va de la lista (compras, recordatorios): se desvanece y se cierra en vez de saltar. */
+.saliendo { animation: salir 0.42s ease 0.25s forwards; overflow: hidden; pointer-events: none; max-height: 8rem; }
+@keyframes salir { to { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; margin: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .caja, .caja::before, .caja svg { transition: none; animation: none; }
+  .saliendo { animation-duration: 0.01s; animation-delay: 0.2s; }
+}
 details summary { cursor: pointer; padding: 0.15rem 0; list-style: none; display: flex; align-items: center; gap: 0.4rem; }
 details summary::-webkit-details-marker { display: none; }
 details summary .ico { transition: transform 0.15s; color: var(--suave); }
@@ -320,10 +345,22 @@ details[open] summary .ico { transform: rotate(90deg); }
 .campo small { font-weight: 400; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
 .check-linea { display: flex; align-items: center; gap: 0.55rem; font-size: 0.9rem; }
-.check-linea input { width: 18px; height: 18px; accent-color: var(--acento); }
+.check-linea { cursor: pointer; touch-action: manipulation; }
+.check-linea input, .dias input {
+  appearance: none; -webkit-appearance: none; margin: 0; flex: none; width: 20px; height: 20px; border-radius: 6px;
+  border: 1.5px solid var(--borde-fuerte); display: inline-grid; place-items: center; cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+.check-linea input::after, .dias input::after {
+  content: ""; width: 5px; height: 10px; border: solid #fff; border-width: 0 2.5px 2.5px 0; margin-top: -2px;
+  transform: rotate(45deg) scale(0); transition: transform 0.2s cubic-bezier(0.3, 1.5, 0.6, 1);
+}
+.check-linea input:checked, .dias input:checked { background: var(--bueno); border-color: var(--bueno); }
+.check-linea input:checked::after, .dias input:checked::after { transform: rotate(45deg) scale(1); }
+.check-linea input:active, .dias input:active { transform: scale(0.88); }
 .dias { border: 1px solid var(--borde-fuerte); border-radius: var(--radio-chico); display: flex; flex-wrap: wrap; gap: 0.7rem; font-size: 0.88rem; padding: 0.6rem 0.75rem; }
 .dias legend { color: var(--texto-2); font-size: 0.8rem; font-weight: 500; padding: 0 0.25rem; }
-.dias input { accent-color: var(--acento); }
+.dias label { display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; }
 .series { display: flex; flex-direction: column; gap: 0.4rem; }
 .serie-fila { display: grid; grid-template-columns: 1fr 4.2rem 4.6rem; gap: 0.4rem; }
 .serie-fila.cab { font-size: 0.74rem; color: var(--suave); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
@@ -580,9 +617,9 @@ button.enlace.ver { font-weight: 500; font-size: 0.86rem; gap: 0.1rem; }
 
 /* Checklist compacto (skincare en el panel) */
 .check-mini { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.15rem; }
-.check-mini li { display: flex; align-items: center; gap: 0.5rem; padding: 0.28rem 0; cursor: pointer; font-size: 0.86rem; min-width: 0; }
+.check-mini li { display: flex; align-items: center; gap: 0.5rem; padding: 0.28rem 0; cursor: pointer; font-size: 0.86rem; min-width: 0; max-height: 3rem; }
 .check-mini li span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.check-mini .caja { width: 19px; height: 19px; border-radius: 6px; }
+.check-mini .caja { --t: 19px; border-radius: 6px; }
 .check-mini li.hecha span:last-child { color: var(--suave); text-decoration: line-through; text-decoration-color: var(--borde-fuerte); }
 .barra-progreso { height: 4px; border-radius: 4px; background: var(--superficie-2); overflow: hidden; }
 .barra-progreso span { display: block; height: 100%; background: var(--bueno); border-radius: 4px; transition: width 0.3s; }
@@ -764,3 +801,27 @@ details.pagadas .fila-txt b { font-weight: 500; }
 .compra-para { color: var(--acento-tinta); }
 .enlace-precio { color: var(--texto-2); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 0.15rem; }
 .enlace-precio:hover { color: var(--acento-tinta); }
+
+/* Lo de siempre: comidas fijas que se marcan con un toque */
+.siempre { display: flex; flex-direction: column; gap: 0.45rem; }
+.siempre-item {
+  all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 0.7rem; width: 100%; cursor: pointer;
+  padding: 0.6rem 0.75rem; border-radius: var(--radio-chico, 10px); border: 1px solid var(--borde);
+  background: var(--superficie); transition: background 0.2s ease, border-color 0.2s ease;
+}
+.siempre-item:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.siempre-item.hecha { background: var(--bueno-suave); border-color: transparent; }
+.siempre-txt { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+.siempre-txt b { font-weight: 600; font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.siempre-txt small { font-size: 0.78rem; color: var(--suave); }
+.siempre.compacto .siempre-item { padding: 0.45rem 0.6rem; }
+.siempre.compacto .siempre-txt b { font-size: 0.86rem; }
+.siempre-todo { align-self: flex-start; }
+.siempre-sug { display: flex; flex-direction: column; gap: 0.2rem; padding: 0.7rem 0.8rem; border-radius: var(--radio-chico, 10px);
+  background: var(--acento-suave); }
+.siempre-sug b { font-size: 0.9rem; }
+.siempre-sug .botonera { display: flex; gap: 0.4rem; margin-top: 0.35rem; flex-wrap: wrap; }
+.siempre-vacio { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+.fav-fila .fila-txt { cursor: pointer; }
+.fav-fila .badge { flex: none; }
+.borrar-fav { color: var(--critico); margin-top: 0.6rem; display: inline-flex; align-items: center; gap: 0.3rem; }

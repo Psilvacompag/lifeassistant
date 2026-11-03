@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { api, avisarCambio } from "../api.js";
 import { Ico } from "../iconos.jsx";
-import { Card, Estado, Seccion, VacioChat, dinero, useApi } from "../ui.jsx";
+import { Caja, Card, Estado, Seccion, VacioChat, dinero, useApi, useMarcas } from "../ui.jsx";
 
 // categoría → [título, ícono]; en este orden se muestran los grupos.
 export const CATEGORIAS = {
@@ -106,7 +106,13 @@ function Agregar() {
   );
 }
 
+const marcarCompra = (id, comprado) => api(`/compras/${id}`, { method: "PATCH", body: { comprado } });
+
 function FilaCompra({ x }) {
+  // Al marcar, la fila pasa a "comprados": primero se ve el visto y se cierra, después se mueve.
+  const marca = useMarcas(marcarCompra, { salida: 650 });
+  const comprado = marca.valor(x.id, x.comprado);
+  const cambiando = comprado !== x.comprado;
   const [ocupado, setOcupado] = useState(false);
   async function cambiar(cuerpo, metodo = "PATCH") {
     setOcupado(true);
@@ -121,16 +127,17 @@ function FilaCompra({ x }) {
   const sub = [x.cantidad, x.detalle].filter(Boolean).join(" · ");
 
   return (
-    <li className={`fila compra ${x.comprado ? "hecha" : ""}`}>
-      <button className="compra-caja" disabled={ocupado} onClick={() => cambiar({ comprado: !x.comprado })}
-              aria-label={x.comprado ? `Marcar como no comprado: ${x.nombre}` : `Marcar como comprado: ${x.nombre}`}
-              aria-pressed={x.comprado}>
-        <span className={`caja ${x.comprado ? "marcada" : ""}`} aria-hidden>{x.comprado && <Ico i={Check} size={14} />}</span>
+    <li className={`fila compra ${comprado ? "hecha" : ""} ${cambiando ? "saliendo" : ""}`}>
+      <button className="compra-caja" disabled={ocupado} onClick={() => !cambiando && marca.marcar(x.id, !comprado)}
+              aria-label={comprado ? `Marcar como no comprado: ${x.nombre}` : `Marcar como comprado: ${x.nombre}`}
+              aria-pressed={comprado}>
+        <Caja marcada={comprado} />
       </button>
       <span className="fila-txt">
         <b>{x.nombre}</b>
         {sub && <small className="suave">{sub}</small>}
         {x.para && <small className="compra-para">Para: {x.para}</small>}
+        {marca.error && <small className="error">{marca.error}</small>}
         {x.precio !== null && !x.comprado && (
           <small>
             {x.url ? (

@@ -5,7 +5,7 @@ import {
 import { api, avisarCambio } from "../api.js";
 import { comidaDeAhora } from "../componentes.jsx";
 import { Ico } from "../iconos.jsx";
-import { Badge, Card, Estado, IconoFila, Seccion, num, useApi } from "../ui.jsx";
+import { Badge, Caja, Card, Estado, IconoFila, Seccion, num, useApi } from "../ui.jsx";
 
 const ATAJOS = [
   "Pollo jugoso en la Crispi",
@@ -149,7 +149,7 @@ function DetalleReceta({ id, onVolver }) {
                 <ul className="check-mini">
                   {d.ingredientes.map((x, i) => (
                     <li key={i} className={tengo[i] ? "hecha" : ""} onClick={() => setTengo((t) => ({ ...t, [i]: !t[i] }))}>
-                      <span className={`caja ${tengo[i] ? "marcada" : ""}`} aria-hidden>{tengo[i] && <Ico i={Check} size={12} />}</span>
+                      <Caja marcada={!!tengo[i]} chica />
                       <span><b>{x.cantidad}</b> {x.item}</span>
                     </li>
                   ))}

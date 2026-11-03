@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Check, ChevronDown, Clock, Lightbulb, LoaderCircle, Moon, Pill, RefreshCw, Stethoscope, Sun, ThumbsDown, ThumbsUp } from "lucide-react";
 import { api, avisarCambio } from "./api.js";
 import { Ico } from "./iconos.jsx";
-import { Badge, IconoFila, num, useApi } from "./ui.jsx";
+import { Badge, Caja, IconoFila, num, useApi, useMarcas } from "./ui.jsx";
 
 /** Dosis del día con botones Tomé / Omitir / Deshacer. Lo usan Hoy, Salud y Cuidado. */
 export function DosisLista({ dosis, vacio = "Sin dosis programadas hoy." }) {
@@ -59,31 +59,25 @@ export function DosisLista({ dosis, vacio = "Sin dosis programadas hoy." }) {
   );
 }
 
+export const marcarPaso = (id, hecho) => api("/cuidado/check", { method: "POST", body: { step_id: id, hecho } });
+
 /** Checklist de la rutina de cuidado (AM o PM). */
 export function RutinaLista({ pasos, vacio }) {
-  const [error, setError] = useState("");
+  const { valor, marcar, error } = useMarcas(marcarPaso);
   if (!pasos?.length) return <p className="suave">{vacio}</p>;
-  async function marcar(p) {
-    setError("");
-    try {
-      await api("/cuidado/check", { method: "POST", body: { step_id: p.id, hecho: !p.hecho } });
-      avisarCambio();
-    } catch (e) {
-      setError(e.message);
-    }
-  }
   return (
     <>
       <ul className="lista">
-        {pasos.map((p) => (
-          <li key={p.id} className={`fila check ${p.hecho ? "hecha" : ""}`} onClick={() => marcar(p)}>
-            <span className={`caja ${p.hecho ? "marcada" : ""}`} aria-hidden>{p.hecho && <Ico i={Check} size={14} />}</span>
+        {pasos.map((p) => { const hecho = valor(p.id, p.hecho); return (
+          <li key={p.id} className={`fila check ${hecho ? "hecha" : ""}`} onClick={() => marcar(p.id, !hecho)}
+              role="checkbox" aria-checked={hecho} tabIndex={0} onKeyDown={(e) => (e.key === " " || e.key === "Enter") && (e.preventDefault(), marcar(p.id, !hecho))}>
+            <Caja marcada={hecho} />
             <span className="fila-txt">
               <b>{p.paso}</b>
               <small className="suave">{[p.area, p.producto].filter(Boolean).join(" · ")}</small>
             </span>
           </li>
-        ))}
+        ); })}
       </ul>
       {error && <p className="error">{error}</p>}
     </>
@@ -251,6 +245,95 @@ export function IdeasComida({ comida = comidaDeAhora() }) {
         );
       })}
       <button className="secundario chico" onClick={otras}><Ico i={RefreshCw} size={15} />Otras ideas</button>
+    </div>
+  );
+}
+
+const MOMENTO = { desayuno: "Desayuno", almuerzo: "Almuerzo", once: "Once", cena: "Cena", snack: "Snack" };
+
+/**
+ * Lo de siempre: las comidas fijas del día (el batido de la mañana). Cada una se marca con un toque y se desmarca
+ * igual; si algo se repite varios días, propone dejarlo como de siempre. `datos` = respuesta de /comida/siempre.
+ */
+export function LoDeSiempre({ datos, fecha, compacto, onElegir }) {
+  const [logs, setLogs] = useState({}); // favorita → registro creado desde aquí (para deshacer antes de recargar)
+  const hab = datos?.habituales ?? [];
+  const logDe = (h) => h.log_id ?? logs[h.id];
+  const enviar = useCallback(async (id, v) => {
+    if (v) {
+      const r = await api(`/comida/favoritas/${id}/registrar`, { method: "POST", body: { fecha } });
+      setLogs((l) => ({ ...l, [id]: r.id }));
+    } else {
+      const h = hab.find((x) => x.id === id);
+      const log = h && (h.log_id ?? logs[id]);
+      if (log) await api(`/comida/${log}`, { method: "DELETE" });
+      setLogs((l) => ({ ...l, [id]: undefined }));
+    }
+  }, [fecha, hab, logs]);
+  const { valor, marcar, enCurso, error } = useMarcas(enviar);
+  const tocar = (h) => !enCurso(h.id) && marcar(h.id, !valor(h.id, !!logDe(h)));
+  const pendientes = hab.filter((h) => !valor(h.id, !!logDe(h)));
+
+  return (
+    <>
+      {hab.length > 0 && (
+        <div className={`siempre ${compacto ? "compacto" : ""}`}>
+          {hab.map((h) => {
+            const hecha = valor(h.id, !!logDe(h));
+            return (
+              <button key={h.id} className={`siempre-item ${hecha ? "hecha" : ""}`} onClick={() => tocar(h)} aria-pressed={hecha}
+                      aria-label={`${hecha ? "Desmarcar" : "Marcar"} ${h.nombre}`}>
+                <Caja marcada={hecha} />
+                <span className="siempre-txt">
+                  <b>{h.nombre}</b>
+                  <small>{MOMENTO[h.comida] ?? "Cuando sea"} · {num(h.kcal)} kcal · {num(h.proteina)} g prot.</small>
+                </span>
+              </button>
+            );
+          })}
+          {pendientes.length > 1 && (
+            <button className="secundario chico siempre-todo" onClick={() => pendientes.forEach((h) => marcar(h.id, true))}>
+              <Ico i={Check} size={15} />Marcar todo ({pendientes.length})
+            </button>
+          )}
+        </div>
+      )}
+      {error && <small className="error">{error}</small>}
+      {datos?.sugerencia && <SugerenciaSiempre s={datos.sugerencia} />}
+      {!hab.length && !datos?.sugerencia && onElegir && (
+        <div className="siempre-vacio">
+          <p className="widget-vacio">¿Comes algo casi todos los días? Déjalo como <b>de siempre</b> y lo marcas con un toque aquí y en Inicio, sin escribir nada.</p>
+          <button className="secundario chico" onClick={onElegir}>Elegir mis de siempre</button>
+        </div>
+      )}
+    </>
+  );
+}
+
+function SugerenciaSiempre({ s }) {
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState("");
+  async function responder(aceptar) {
+    setOcupado(true);
+    setError("");
+    try {
+      await api("/comida/siempre/sugerencia", { method: "POST", body: { clave: s.clave, aceptar } });
+      avisarCambio();
+    } catch (e) {
+      setError(e.message);
+      setOcupado(false);
+    }
+  }
+  return (
+    <div className="siempre-sug">
+      <small className="widget-sub">Lo anotaste {s.dias} días en las últimas dos semanas</small>
+      <b>{s.descripcion}</b>
+      <small className="widget-sub">{MOMENTO[s.comida]} · {num(s.kcal)} kcal · {num(s.proteina)} g prot.</small>
+      <div className="botonera">
+        <button className="chico" disabled={ocupado} onClick={() => responder(true)}><Ico i={Check} size={15} />Dejar como de siempre</button>
+        <button className="secundario chico" disabled={ocupado} onClick={() => responder(false)}>No</button>
+      </div>
+      {error && <small className="error">{error}</small>}
     </div>
   );
 }

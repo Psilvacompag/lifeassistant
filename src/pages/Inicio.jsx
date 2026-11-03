@@ -4,11 +4,11 @@ import {
   TrendingDown, TrendingUp, Utensils, Wallet,
 } from "lucide-react";
 import { api, avisarCambio } from "../api.js";
-import { comidaDeAhora } from "../componentes.jsx";
+import { LoDeSiempre, comidaDeAhora, marcarPaso } from "../componentes.jsx";
 import { Ico } from "../iconos.jsx";
 import {
-  Anillo, Avatar, Estado, FechaBloque, IconoFila, MiniBarras, Resumen, clp, diasHasta, dinero, fechaCorta, fechaHora, num, useApi,
-  venceTexto,
+  Anillo, Avatar, Caja, Estado, FechaBloque, IconoFila, MiniBarras, Resumen, clp, diasHasta, dinero, fechaCorta, fechaHora, num, useApi,
+  useMarcas, venceTexto,
 } from "../ui.jsx";
 import { ESTADO_PEDIDO } from "./Pedidos.jsx";
 
@@ -115,17 +115,8 @@ function WidgetSkincare({ h, ir }) {
   const preferido = hora < 15 ? "am" : "pm";
   const momento = h.rutina[preferido].length ? preferido : h.rutina[preferido === "am" ? "pm" : "am"].length ? (preferido === "am" ? "pm" : "am") : preferido;
   const pasos = h.rutina[momento];
-  const hechos = pasos.filter((p) => p.hecho).length;
-  const [error, setError] = useState("");
-  async function marcar(p) {
-    setError("");
-    try {
-      await api("/cuidado/check", { method: "POST", body: { step_id: p.id, hecho: !p.hecho } });
-      avisarCambio();
-    } catch (e) {
-      setError(e.message);
-    }
-  }
+  const { valor, marcar, error } = useMarcas(marcarPaso);
+  const hechos = pasos.filter((p) => valor(p.id, p.hecho)).length;
   return (
     <Widget icono={momento === "am" ? Sun : Moon} titulo="Skincare"
             contador={pasos.length ? `${hechos}/${pasos.length}` : null} onAbrir={() => ir("cuidado")}>
@@ -136,12 +127,12 @@ function WidgetSkincare({ h, ir }) {
           <small className="widget-sub">Rutina de {momento === "am" ? "mañana" : "noche"}</small>
           <div className="barra-progreso"><span style={{ width: `${(100 * hechos) / pasos.length}%` }} /></div>
           <ul className="check-mini">
-            {pasos.map((p) => (
-              <li key={p.id} className={p.hecho ? "hecha" : ""} onClick={() => marcar(p)}>
-                <span className={`caja ${p.hecho ? "marcada" : ""}`} aria-hidden>{p.hecho && <Ico i={Check} size={12} />}</span>
+            {pasos.map((p) => { const hecho = valor(p.id, p.hecho); return (
+              <li key={p.id} className={hecho ? "hecha" : ""} onClick={() => marcar(p.id, !hecho)} role="checkbox" aria-checked={hecho}>
+                <Caja marcada={hecho} chica />
                 <span>{p.paso}</span>
               </li>
-            ))}
+            ); })}
           </ul>
           {h.por_vencer.length > 0 && (
             <small className="nota-estado serio" style={{ display: "flex", gap: "0.3rem", alignItems: "center" }}>
@@ -200,6 +191,7 @@ function WidgetComida({ h, ir }) {
   return (
     <Widget icono={Utensils} titulo="Comidas de hoy" ancho onAbrir={() => ir("comida")}
             contador={n.restante.kcal !== null ? `quedan ${num(Math.max(0, n.restante.kcal))} kcal` : null}>
+      <LoDeSiempre datos={h.siempre} fecha={h.fecha} compacto />
       {porComida.length ? (
         <div className="comidas-mini">
           {porComida.map(([c, k]) => <span key={c}>{c[0].toUpperCase() + c.slice(1)} <b>{num(k)}</b></span>)}
@@ -324,26 +316,21 @@ function WidgetPedidos({ pedidos, ir }) {
   );
 }
 
+const marcarComprado = (id, v) => api(`/compras/${id}`, { method: "PATCH", body: { comprado: v } });
+const marcarListo = (id) => api(`/recordatorios/${id}`, { method: "PATCH", body: { estado: "hecho" } });
+
 function WidgetCompras({ compras, total, ir }) {
-  const [error, setError] = useState("");
-  async function comprado(x) {
-    setError("");
-    try {
-      await api(`/compras/${x.id}`, { method: "PATCH", body: { comprado: true } });
-      avisarCambio();
-    } catch (e) {
-      setError(e.message);
-    }
-  }
+  const { valor, marcar, error } = useMarcas(marcarComprado, { salida: 650 });
   return (
     <Widget icono={ShoppingBag} titulo="Por comprar" ancho onAbrir={() => ir("compras")} contador={`${total}`}>
       <ul className="check-mini">
-        {compras.map((x) => (
-          <li key={x.id} onClick={() => comprado(x)} aria-label={`Marcar como comprado: ${x.nombre}`}>
-            <span className="caja" aria-hidden />
+        {compras.map((x) => { const listo = valor(x.id, false); return (
+          <li key={x.id} className={listo ? "hecha saliendo" : ""} onClick={() => !listo && marcar(x.id, true)}
+              aria-label={`Marcar como comprado: ${x.nombre}`} role="checkbox" aria-checked={listo}>
+            <Caja marcada={listo} chica />
             <span>{x.nombre}{x.cantidad && <span className="suave"> · {x.cantidad}</span>}</span>
           </li>
-        ))}
+        ); })}
       </ul>
       {total > compras.length && (
         <button className="enlace chico-txt widget-pie" onClick={() => ir("compras")}>Ver las {total}</button>
@@ -354,29 +341,21 @@ function WidgetCompras({ compras, total, ir }) {
 }
 
 function WidgetRecordatorios({ recordatorios, ir }) {
-  const [error, setError] = useState("");
-  async function listo(x) {
-    setError("");
-    try {
-      await api(`/recordatorios/${x.id}`, { method: "PATCH", body: { estado: "hecho" } });
-      avisarCambio();
-    } catch (e) {
-      setError(e.message);
-    }
-  }
+  const { valor, marcar, error } = useMarcas(marcarListo, { salida: 650 });
   const ahora = Date.now();
   return (
     <Widget icono={Bell} tono="aviso" titulo="Recordatorios" ancho onAbrir={() => ir("chat")} contador={`${recordatorios.length}`}>
       <ul className="check-mini">
-        {recordatorios.map((x) => (
-          <li key={x.id} onClick={() => listo(x)} aria-label={`Marcar como listo: ${x.titulo}`}>
-            <span className="caja" aria-hidden />
+        {recordatorios.map((x) => { const listo = valor(x.id, false); return (
+          <li key={x.id} className={listo ? "hecha saliendo" : ""} onClick={() => !listo && marcar(x.id, true)}
+              aria-label={`Marcar como listo: ${x.titulo}`} role="checkbox" aria-checked={listo}>
+            <Caja marcada={listo} chica />
             <span>
               {x.titulo}
               <span className={new Date(x.cuando).getTime() < ahora ? "nota-estado serio" : "suave"}> · {fechaHora(x.cuando)}</span>
             </span>
           </li>
-        ))}
+        ); })}
       </ul>
       {error && <small className="error">{error}</small>}
     </Widget>
